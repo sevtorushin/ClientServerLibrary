@@ -13,11 +13,13 @@ import service.WITSStreamEmulator;
 import test.WITSRandomGenerator;
 
 import java.io.*;
+import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Properties;
 import java.util.Random;
 
 public class Main {
@@ -197,6 +199,14 @@ public class Main {
 //            } catch (InterruptedException e) {
 //                e.printStackTrace();
 //            }
+//        }
+
+
+//        try {
+//            SIBReceiverServer server = new SIBReceiverServer(5110);
+//            SIBReceiverServer server2 = new SIBReceiverServer(5110);
+//        } catch (DisconnectedException e) {
+//            e.printStackTrace();
 //        }
 
     }

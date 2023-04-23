@@ -4,7 +4,10 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ConnectException;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
 public abstract class AbstractClient implements Transmittable, Closeable {
     private final Socket socket;
@@ -14,7 +17,7 @@ public abstract class AbstractClient implements Transmittable, Closeable {
     private final int DEFAULT_BUFFER_SIZE = 512;
 
     public AbstractClient(String hostName, int port) throws IOException {
-        socket = new Socket(hostName, port);
+        socket = getSocket(hostName, port);
         inpStrm = socket.getInputStream();
         outStrm = socket.getOutputStream();
         buf = new byte[DEFAULT_BUFFER_SIZE];
@@ -32,6 +35,20 @@ public abstract class AbstractClient implements Transmittable, Closeable {
     }
 
     public Socket getSocket() {
+        return socket;
+    }
+
+    private Socket getSocket(String hostName, int port) {
+        Socket socket = null;
+        try {
+            socket = new Socket(InetAddress.getByName(hostName), port);
+        } catch (UnknownHostException e) {
+            System.err.println("Unknown host " + e);
+        } catch (ConnectException e) {
+            System.err.println("The server is not running on the specified endpoint\r\n" + e);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return socket;
     }
 
