@@ -1,3 +1,4 @@
+import connection.AbstractClient;
 import connection.SIBReceiverServer;
 import connection.TransferClient;
 import connection.WITSReceivingClient;
@@ -13,10 +14,7 @@ import service.WITSStreamEmulator;
 import test.WITSRandomGenerator;
 
 import java.io.*;
-import java.net.BindException;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Properties;
@@ -200,14 +198,29 @@ public class Main {
 //                e.printStackTrace();
 //            }
 //        }
-
-
-//        try {
-//            SIBReceiverServer server = new SIBReceiverServer(5110);
-//            SIBReceiverServer server2 = new SIBReceiverServer(5110);
-//        } catch (DisconnectedException e) {
-//            e.printStackTrace();
+//--------------------------------------------------------------------------------------------
+//        while (true) {
+//            try (AbstractClient client = new WITSReceivingClient("192.168.0.102", 5110)) {
+//                while (true) {
+//                    byte[] bytes;
+//                    try {
+//                        bytes = client.receiveBytes();
+//                        System.out.println(new String(bytes));
+//                    } catch (DisconnectedException e) {
+//                        System.err.println(e.getMessage());
+//                        System.out.println("Try reconnect...");
+//                        break;
+//                    }
+//                }
+//                try {
+//                    Thread.sleep(5000);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//            } catch (Exception e) {
+//                    System.out.println("Try reconnect...");
+//            }
 //        }
-
     }
+
 }

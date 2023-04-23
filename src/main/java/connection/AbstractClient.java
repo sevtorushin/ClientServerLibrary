@@ -1,5 +1,7 @@
 package connection;
 
+import exceptions.DisconnectedException;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,6 +10,7 @@ import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 
 public abstract class AbstractClient implements Transmittable, Closeable {
     private final Socket socket;
@@ -24,7 +27,7 @@ public abstract class AbstractClient implements Transmittable, Closeable {
     }
 
     @Override
-    public byte[] receiveBytes() throws IOException {
+    public byte[] receiveBytes() throws IOException, DisconnectedException {
         inpStrm.read(buf);
         return buf;
     }

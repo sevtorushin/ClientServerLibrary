@@ -1,5 +1,7 @@
 package connection;
 
+import exceptions.DisconnectedException;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
@@ -12,11 +14,13 @@ public class WITSReceivingClient extends AbstractClient {
     }
 
     @Override
-    public byte[] receiveBytes() {
+    public byte[] receiveBytes() throws DisconnectedException {
         try {
             int count = 0;
             while (true) {
                 byte b = (byte) getInpStrm().read();
+                if (b == -1)
+                    throw new DisconnectedException("Server is disconnected");
                 if (b != 33) {
                     buf[count] = b;
                     count++;
@@ -36,7 +40,7 @@ public class WITSReceivingClient extends AbstractClient {
         return buf;
     }
 
-    public String getTextData() {
+    public String getTextData() throws DisconnectedException {
         return new String(receiveBytes(), StandardCharsets.UTF_8);
     }
 }

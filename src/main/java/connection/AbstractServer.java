@@ -15,7 +15,7 @@ public abstract class AbstractServer implements Transmittable, Closeable {
     private InputStream inpStrm;
     private OutputStream outStrm;
     protected byte[] buf;
-    private byte[] tempBuf = new byte[512];
+//    private byte[] tempBuf = new byte[512];
     private final int DEFAULT_BUFFER_SIZE = 512;
 
     public AbstractServer(int port) throws IOException {
@@ -29,11 +29,12 @@ public abstract class AbstractServer implements Transmittable, Closeable {
     @Override
     public byte[] receiveBytes() throws DisconnectedException, IOException {
         inpStrm.read(buf);
-        if (buf[0]==0)
-            throw new DisconnectedException("Client is disconnected");
-        System.arraycopy(buf, 0, tempBuf, 0, buf.length);
-        Arrays.fill(buf, (byte) 0);
-        return tempBuf;
+//        if (buf[0]==0)
+//            throw new DisconnectedException("Client is disconnected");
+//        System.arraycopy(buf, 0, tempBuf, 0, buf.length);
+//        Arrays.fill(buf, (byte) 0);
+//        return tempBuf;
+        return buf;
     }
 
     @Override
