@@ -10,6 +10,7 @@ import service.SIBConverter;
 import service.SIBStreamEmulator;
 import service.WITSConverter;
 import service.WITSStreamEmulator;
+import test.WITSRandomGenerator;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -17,6 +18,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Random;
 
 public class Main {
 
@@ -74,7 +76,7 @@ public class Main {
 
 //----------------------------------------------------------------------------------------------
 //        Сборка объекта пакета №1 WITS
-//        WITSReceivingClient client = new WITSReceivingClient("127.0.0.1", 5000);
+//        WITSReceivingClient client = new WITSReceivingClient("192.168.0.100", 6000);
 //        WITSConverter converter = new WITSConverter();
 ////        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("e:\\witsObjectData.bin"));
 ////        BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream("e:\\witsBinaryData.bin"));
@@ -118,7 +120,7 @@ public class Main {
 //        }
 //----------------------------------------------------------------------------------------------
         //Прием данных из SR, конвертация в объект и печать в консоль
-//        try(SIBReceiverServer srv = new SIBReceiverServer(5000)) {
+//        try(SIBReceiverServer srv = new SIBReceiverServer(5111)) {
 //            SIBConverter converter = new SIBConverter();
 //            while (true) {
 //                byte[] data = srv.receiveBytes();
@@ -185,5 +187,17 @@ public class Main {
 //
 //        }
 //--------------------------------------------------------------------------------------------
+
+        //Генерация пакета №1 WITS и печать в консоль
+//        WITSRandomGenerator generator = new WITSRandomGenerator("01");
+//        while (true) {
+//            System.out.println(generator.getWITSPackage());
+//            try {
+//                Thread.sleep(1000);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//        }
+
     }
 }

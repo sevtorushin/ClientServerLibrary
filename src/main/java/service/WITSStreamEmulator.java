@@ -20,13 +20,13 @@ public class WITSStreamEmulator {
         byte[] localBuf = new byte[512];
         int count = 0;
         for (int i = mark; ; i++) {
-            if (i==buf.length) throw new BuildObjectException("Empty object. End of file reached");
+            if (i == buf.length) throw new BuildObjectException("Empty object. End of file reached");
             if (buf[i] != 38)
                 mark++;
             else break;
         }
         for (int i = mark; i < mark + 512; i++) {
-            if (i==buf.length) throw new BuildObjectException("Empty object. End of file reached");
+            if (i == buf.length) throw new BuildObjectException("Empty object. End of file reached");
             if (buf[i] == 33) {
                 for (int j = 0; j < 4; j++) {
                     localBuf[count] = buf[i + j];

@@ -29,6 +29,7 @@ public class WITSConverter implements Convertible<WITSPackage>{
         Object[] fieldValues = new Object[99];
         String witsRecordCode = clazz.getAnnotation(WITSPackageCode.class).code();
         Arrays.stream(WITSData.split("\r\n"))
+                .map(s -> s.contains("e-") ? witsRecordCode + s.substring(2, 4) + "0.0" : s)
                 .filter(s -> s.matches(witsRecordCode + "\\d{2}-?\\d*.?\\d*?"))
                 .forEach(s -> fieldValues[Integer.parseInt(s.substring(2, 4))] = s.substring(4));
         fieldValues[5] = LocalDate.parse((String) fieldValues[5], DateTimeFormatter.ofPattern("yyMMdd"));
