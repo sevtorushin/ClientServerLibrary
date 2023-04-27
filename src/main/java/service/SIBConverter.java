@@ -3,7 +3,7 @@ package service;
 import entity.SIBParameter;
 import entity.SIBParameterType;
 
-public class SIBConverter implements Convertible<SIBParameter>{
+public class SIBConverter implements Convertable<SIBParameter> {
 
     private String getName(int bytePerformance) {
         for (SIBParameterType type : SIBParameterType.values()) {

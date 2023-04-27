@@ -1,5 +1,5 @@
 package service;
 
-public interface Convertible<T> {
+public interface Convertable<T> {
     T convert(byte[] data, Class<? extends T> clazz);
 }

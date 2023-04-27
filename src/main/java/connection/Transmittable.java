@@ -2,7 +2,6 @@ package connection;
 
 import exceptions.DisconnectedException;
 
-import java.io.Closeable;
 import java.io.IOException;
 
 public interface Transmittable {

@@ -11,7 +11,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 
-public class WITSConverter implements Convertible<WITSPackage>{
+public class WITSConverter implements Convertable<WITSPackage> {
 
     public WITSPackage convert(byte[] data, Class<? extends WITSPackage> clazz) {
         String WITSData = new String(data, StandardCharsets.UTF_8);

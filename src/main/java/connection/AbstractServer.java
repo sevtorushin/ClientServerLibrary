@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.*;
-import java.util.Arrays;
 
 public abstract class AbstractServer implements Transmittable, Closeable {
     private final ServerSocket serverSocket;
@@ -28,12 +27,9 @@ public abstract class AbstractServer implements Transmittable, Closeable {
 
     @Override
     public byte[] receiveBytes() throws DisconnectedException, IOException {
-        inpStrm.read(buf);
-//        if (buf[0]==0)
-//            throw new DisconnectedException("Client is disconnected");
-//        System.arraycopy(buf, 0, tempBuf, 0, buf.length);
-//        Arrays.fill(buf, (byte) 0);
-//        return tempBuf;
+        inpStrm.read();  //skip first marker byte
+        if (inpStrm.read(buf) == -1)
+            throw new DisconnectedException("Client is disconnected");
         return buf;
     }
 

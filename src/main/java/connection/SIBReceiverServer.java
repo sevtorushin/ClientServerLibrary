@@ -3,7 +3,6 @@ package connection;
 import exceptions.DisconnectedException;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 public class SIBReceiverServer extends AbstractServer{
     private final int DEFAULT_BUFFER_SIZE = 44;
@@ -34,10 +33,6 @@ public class SIBReceiverServer extends AbstractServer{
     @Override
     public byte[] receiveBytes() throws DisconnectedException, IOException {
         buf = super.receiveBytes();
-        if (buf[0]==0)
-            throw new DisconnectedException("Client is disconnected");
-        System.arraycopy(buf, 0, tempBuf, 0, buf.length);
-        Arrays.fill(buf, (byte) 0);
-        return tempBuf;
+        return buf;
     }
 }

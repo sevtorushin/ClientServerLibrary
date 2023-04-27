@@ -16,9 +16,7 @@ import test.WITSRandomGenerator;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Properties;
-import java.util.Random;
+import java.util.*;
 
 public class Main {
 
@@ -222,5 +220,5 @@ public class Main {
 //            }
 //        }
     }
-
 }
+
