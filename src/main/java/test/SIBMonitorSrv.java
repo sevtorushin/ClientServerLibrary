@@ -4,30 +4,35 @@ import exceptions.DisconnectedException;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
+import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
-import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.LinkedBlockingDeque;
 
 public class SIBMonitorSrv extends AbstractReceiveSrv {
     private final ServerSocket serverSocket;
-    private BlockingQueue<Socket> clientSockets = new ArrayBlockingQueue<>(2);
-    private Queue<SibNode> data = new PriorityQueue<>();
-    private ReentrantLock lock = new ReentrantLock(true);
-    Condition condition = lock.newCondition();
-    private byte[] buffer = new byte[44];
-    private boolean isNewConnectionCreated = false;
+    private int maxNumberOfClient;
+    private BlockingQueue<Socket> clientSockets;
+    private Queue<SibNode> data = new LinkedBlockingDeque<>();
+    private int DEFAULT_BUFFER_SIZE = 44;
+    private byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
 
-    public SIBMonitorSrv(int port) throws IOException {
-        serverSocket = new ServerSocket(port);
+    public SIBMonitorSrv(int port) {
+        this.serverSocket = getServerSocket(port);
+        this.maxNumberOfClient = 1;
+        this.clientSockets = new ArrayBlockingQueue<>(maxNumberOfClient);
     }
 
-    private class SibNode implements Comparable<SibNode>{
+    public SIBMonitorSrv(int port, int maxNumberOfClient) {
+        this.serverSocket = getServerSocket(port);
+        this.maxNumberOfClient = maxNumberOfClient;
+        this.clientSockets = new ArrayBlockingQueue<>(maxNumberOfClient);
+    }
+
+    private static class SibNode implements Comparable<SibNode> {
         private LocalDateTime localDateTime;
         private byte[] bytes;
 
@@ -36,89 +41,39 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
             this.bytes = bytes;
         }
 
-        public LocalDateTime getLocalDateTime() {
-            return localDateTime;
-        }
-
-        public byte[] getBytes() {
-            return bytes;
-        }
-
         @Override
         public int compareTo(SibNode node) {
             return this.localDateTime.compareTo(node.localDateTime);
         }
     }
 
-    public void setNewConnectionCreated(boolean newConnectionCreated) {
-        lock.lock();
-        try {
-            while (!isNewConnectionCreated) {
-                condition.await();
-            }
-            isNewConnectionCreated = newConnectionCreated;
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    public boolean isNewConnectionCreated() {
-        return isNewConnectionCreated;
-    }
-
     @Override
     public void run() {
-        lock.lock();
-        try {
-            Socket sibMonitorSocket = serverSocket.accept();
-            sibMonitorSocket.getInputStream().read(buffer);
-            if (buffer[0] == -56) {
-                System.out.println("SIB Monitor client connected");
-            } else {
-                System.out.println("Unknown client connection attempt...");
-                sibMonitorSocket.close();
-                System.out.println("Unknown client connection dropped successful");
-                isNewConnectionCreated = true;
-                condition.signal();
-                return;
-            }
-            clientSockets.add(sibMonitorSocket);
-            isNewConnectionCreated = true;
-            condition.signal();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    public void start() {
-        new Thread(() -> {
-            while (true) {
-                try {
-                    Socket sibMonitorSocket = serverSocket.accept();
-                    sibMonitorSocket.getInputStream().read(buffer);
-                    if (buffer[0] == -56) {
-                        System.out.println("SIB Monitor client connected");
-                    } else {
-                        System.out.println("Unknown client connection attempt...");
-                        sibMonitorSocket.close();
-                        System.out.println("Unknown client connection dropped successful");
-                        continue;
-                    }
-                    clientSockets.add(sibMonitorSocket);
-                } catch (IOException e) {
-                    e.printStackTrace();
+        while (true) {
+            try {
+                Socket sibMonitorSocket = serverSocket.accept();
+                sibMonitorSocket.getInputStream().read(buffer);
+                if (buffer[0] != -56) {
+                    System.out.println("Unknown client connection attempt...");
+                    sibMonitorSocket.close();
+                    System.out.println("Unknown client connection dropped successful");
+                    continue;
                 }
+                if (clientSockets.size() == maxNumberOfClient) {
+                    System.err.println("Client connection limit exceeded");
+                    continue;
+                }
+                clientSockets.add(sibMonitorSocket);
+                System.out.println("SIB Monitor client connected");
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        }).start();
+        }
     }
 
     @Override
     public byte[] receiveBytes(Socket clientSocket) throws DisconnectedException {
-        try (InputStream is = clientSocket.getInputStream()){
+        try (InputStream is = clientSocket.getInputStream()) {
             if (is.read(buffer) == -1) {
                 throw new DisconnectedException("Client disconnected");
             }
@@ -129,32 +84,57 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
     }
 
     public void receiveBytes() {
-            new Thread(() -> {
-                while (true) {
-                    try (Socket clientSocket = clientSockets.take();
-                         InputStream is = clientSocket.getInputStream()) {
-                        while (is.read(buffer) != -1) {
-                            if (buffer[0] == 4)
-                                throw new DisconnectedException("Client disconnected");
-                            data.offer(new SibNode(LocalDateTime.now(), buffer));
-                        }
-                        System.err.println("Client disconnected");
-                    } catch (IOException | InterruptedException | DisconnectedException e) {
-                        System.out.println(e.getMessage());
+        new Thread(() -> {
+            while (true) {
+                try (Socket clientSocket = clientSockets.take();
+                     InputStream is = clientSocket.getInputStream()) {
+                    while (is.read(buffer) != -1) {
+                        if (buffer[0] == 4)
+                            break;
+                        data.offer(new SibNode(LocalDateTime.now(), buffer));
                     }
+                    System.out.println("Client disconnected");
+                } catch (IOException | InterruptedException e) {
+                    System.out.println(e.getMessage());
                 }
-            }).start();
+            }
+        }).start();
     }
 
-    public byte[] getBuffer() {
-        return buffer;
+    public Socket getSocket() {
+        Socket socket = null;
+        try {
+            socket = clientSockets.take();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return socket;
     }
 
-    public BlockingQueue<Socket> getClientSockets() {
-        return clientSockets;
+    public byte[] getValue() throws IOException {
+        if (!data.isEmpty())
+            return data.poll().bytes;
+        else throw new IOException("No data");
     }
 
-    public Queue<SibNode> getData() {
-        return data;
+    public LocalDateTime getLocalDateTime() throws IOException {
+        if (!data.isEmpty())
+            return data.poll().localDateTime;
+        else throw new IOException("No data");
+    }
+
+    private ServerSocket getServerSocket(int port) {
+        ServerSocket serverSocket = null;
+        try {
+            serverSocket = new ServerSocket();
+            serverSocket.bind(new InetSocketAddress(InetAddress.getByName("localhost"), port));
+        } catch (BindException e) {
+            System.err.println("Port is not available. Please use another port" + e);
+            System.exit(-1);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return serverSocket;
     }
 }
