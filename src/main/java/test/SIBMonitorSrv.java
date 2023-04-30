@@ -5,20 +5,25 @@ import exceptions.DisconnectedException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
-import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
-import java.util.Queue;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class SIBMonitorSrv extends AbstractReceiveSrv {
     private final ServerSocket serverSocket;
     private int maxNumberOfClient;
     private BlockingQueue<Socket> clientSockets;
-    private Queue<SibNode> data = new LinkedBlockingDeque<>();
-    private int DEFAULT_BUFFER_SIZE = 44;
+    private Map<Socket, LinkedBlockingQueue<byte[][]>> socketsCaches = new HashMap<>();
+    private int DEFAULT_BUFFER_SIZE = 22;
     private byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
+    private ReentrantLock lock = new ReentrantLock();
+    private Condition condition = lock.newCondition();
+    private boolean isNewClientConnected = false;
+    private boolean serverConnect = true;
+    private boolean isInterrupt = false;
 
     public SIBMonitorSrv(int port) {
         this.serverSocket = getServerSocket(port);
@@ -32,107 +37,170 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
         this.clientSockets = new ArrayBlockingQueue<>(maxNumberOfClient);
     }
 
-    private static class SibNode implements Comparable<SibNode> {
-        private LocalDateTime localDateTime;
-        private byte[] bytes;
-
-        public SibNode(LocalDateTime localDateTime, byte[] bytes) {
-            this.localDateTime = localDateTime;
-            this.bytes = bytes;
-        }
-
-        @Override
-        public int compareTo(SibNode node) {
-            return this.localDateTime.compareTo(node.localDateTime);
-        }
-    }
-
     @Override
     public void run() {
-        while (true) {
+        while (serverConnect) {
             try {
-                Socket sibMonitorSocket = serverSocket.accept();
-                sibMonitorSocket.getInputStream().read(buffer);
-                if (buffer[0] != -56) {
+                Socket clientSocket = serverSocket.accept();
+                if (!isValidClient(clientSocket)) {
                     System.out.println("Unknown client connection attempt...");
-                    sibMonitorSocket.close();
+                    clientSocket.close();
                     System.out.println("Unknown client connection dropped successful");
                     continue;
                 }
-                if (clientSockets.size() == maxNumberOfClient) {
-                    System.err.println("Client connection limit exceeded");
-                    continue;
+                try {
+                    lock.lock();
+                    if (clientSockets.offer(clientSocket)) {
+                        addToMap(clientSocket);
+                        isNewClientConnected = true;
+                        System.out.println("SIB Monitor client connected");
+                    } else {
+                        System.err.println("Client connection limit exceeded");
+                        clientSocket.close();
+                        continue;
+                    }
+                    condition.signal();
+                } finally {
+                    lock.unlock();
                 }
-                clientSockets.add(sibMonitorSocket);
-                System.out.println("SIB Monitor client connected");
+            } catch (SocketTimeoutException e) {
+                if (isInterrupt)
+                    return;
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
 
-    @Override
-    public byte[] receiveBytes(Socket clientSocket) throws DisconnectedException {
-        try (InputStream is = clientSocket.getInputStream()) {
-            if (is.read(buffer) == -1) {
-                throw new DisconnectedException("Client disconnected");
-            }
-        } catch (IOException e) {
-            throw new DisconnectedException("Client disconnected");
-        }
-        return buffer;
+    public void stopServer(){
+//        isInterrupt = true;   //todo не удалять. Решить проблему с read() и раскомментировать строку
+        System.out.println("Server stopped");
+        System.exit(1); //todo удалить после решения проблемы с read()
     }
 
-    public void receiveBytes() {
+    private boolean isValidClient(Socket clientSocket) throws IOException {
+        return (byte) clientSocket.getInputStream().read() == -56;
+    }
+
+    @Override
+    public byte[] receiveBytes(Socket clientSocket) {
+        byte[][] bytes = null;
+        try {
+            bytes = socketsCaches.get(getSameMapSocket(clientSocket)).take();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return bytes[1];
+
+    }
+
+    public void startReceiving() {
         new Thread(() -> {
+            Set<Socket> uniqueSocketsContainer = new HashSet<>();
             while (true) {
-                try (Socket clientSocket = clientSockets.take();
-                     InputStream is = clientSocket.getInputStream()) {
-                    while (is.read(buffer) != -1) {
-                        if (buffer[0] == 4)
-                            break;
-                        data.offer(new SibNode(LocalDateTime.now(), buffer));
+                try {
+                    lock.lock();
+                    while (!isNewClientConnected) {
+                        try {
+                            condition.await(500, TimeUnit.MILLISECONDS);
+                            if (isInterrupt)
+                                return;
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
-                    System.out.println("Client disconnected");
-                } catch (IOException | InterruptedException e) {
-                    System.out.println(e.getMessage());
+
+                    for (Socket clientSocket : clientSockets) {
+                        if (uniqueSocketsContainer.add(clientSocket) && clientSocket != null) {
+                            writeToQueueFromSocket(clientSocket);
+                            isNewClientConnected = false;
+                        }
+                    }
+                } finally {
+                    lock.unlock();
+                    if (isInterrupt)
+                        return;
                 }
             }
         }).start();
     }
 
-    public Socket getSocket() {
-        Socket socket = null;
-        try {
-            socket = clientSockets.take();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return socket;
+    public Set<Socket> getClients() {
+        return socketsCaches.keySet();
     }
 
-    public byte[] getValue() throws IOException {
-        if (!data.isEmpty())
-            return data.poll().bytes;
-        else throw new IOException("No data");
+    private void writeToQueueFromSocket(Socket socket) {
+        new Thread(() -> {
+            LinkedBlockingQueue<byte[][]> queue = socketsCaches.get(getSameMapSocket(socket));
+            try (InputStream is = socket.getInputStream()) {
+                while (is.read(buffer) != -1) { //todo метод блокирует поток и сервер не может быть остановлен
+                    if (buffer[0] == 4)
+                        break;
+                    LocalDateTime dateTime = LocalDateTime.now();
+                    String s = dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                    queue.offer(new byte[][]{s.getBytes(), buffer});    //todo обработать условие когда offer отдает false (если очередь переполнена)
+                    if (isInterrupt)
+                        return;
+
+                    try {
+                        byte[][] bytes = queue.take();
+                        System.out.println(socket.getInetAddress() + " -> " + new String(bytes[0]) + ":  " + Arrays.toString(bytes[1]));
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+                throw new DisconnectedException("Client disconnected");
+            } catch (IOException | DisconnectedException e) {
+                System.out.println(e.getMessage());
+            } finally {
+                try {
+                    socket.close();//todo закрывать снаружи?
+                    clientSockets.remove(socket);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
-    public LocalDateTime getLocalDateTime() throws IOException {
-        if (!data.isEmpty())
-            return data.poll().localDateTime;
-        else throw new IOException("No data");
+//    private Socket getNextSocket() {
+//        Socket socket = null;
+//        try {
+//            lock.lock();
+//            while (clientSockets.isEmpty())
+//                condition.await();
+//            socket = clientSockets.take();
+//            clientSockets.offer(socket);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        } finally {
+//            lock.unlock();
+//        }
+//        return socket;
+//    }
+
+    private Socket getSameMapSocket(Socket socket) {
+        return socketsCaches.keySet().stream()
+                .filter(mapSocket -> mapSocket.getInetAddress().equals(socket.getInetAddress()))
+                .findFirst().orElse(null);
+    }
+
+    private void addToMap(Socket socket) {
+        if (getSameMapSocket(socket) == null)
+            socketsCaches.put(socket, new LinkedBlockingQueue<>());
     }
 
     private ServerSocket getServerSocket(int port) {
         ServerSocket serverSocket = null;
         try {
             serverSocket = new ServerSocket();
-            serverSocket.bind(new InetSocketAddress(InetAddress.getByName("localhost"), port));
+            serverSocket.bind(new InetSocketAddress(port));
+            serverSocket.setSoTimeout(500);
         } catch (BindException e) {
             System.err.println("Port is not available. Please use another port" + e);
             System.exit(-1);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return serverSocket;

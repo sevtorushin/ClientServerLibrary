@@ -7,5 +7,5 @@ import java.io.InputStream;
 import java.net.Socket;
 
 public interface Receivable extends Cloneable {
-    byte[] receiveBytes(Socket socket) throws DisconnectedException, IOException;
+    byte[] receiveBytes(Socket socket) throws DisconnectedException, IOException, InterruptedException;
 }
