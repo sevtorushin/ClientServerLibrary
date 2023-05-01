@@ -14,9 +14,10 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class SIBMonitorSrv extends AbstractReceiveSrv {
     private final ServerSocket serverSocket;
+    private int port;
     private int maxNumberOfClient;
     private BlockingQueue<Socket> clientSockets;
-    private Map<Socket, LinkedBlockingQueue<byte[][]>> socketsCaches = new HashMap<>();
+    private Map<Socket, LinkedBlockingQueue<byte[][]>> socketsCaches = new ConcurrentHashMap<>();
     private int DEFAULT_BUFFER_SIZE = 22;
     private byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
     private ReentrantLock lock = new ReentrantLock();
@@ -26,12 +27,14 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
     private boolean isInterrupt = false;
 
     public SIBMonitorSrv(int port) {
+        this.port = port;
         this.serverSocket = getServerSocket(port);
         this.maxNumberOfClient = 1;
         this.clientSockets = new ArrayBlockingQueue<>(maxNumberOfClient);
     }
 
     public SIBMonitorSrv(int port, int maxNumberOfClient) {
+        this.port = port;
         this.serverSocket = getServerSocket(port);
         this.maxNumberOfClient = maxNumberOfClient;
         this.clientSockets = new ArrayBlockingQueue<>(maxNumberOfClient);
@@ -39,11 +42,12 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
 
     @Override
     public void run() {
+        System.out.println("Server started on port " + port);
         while (serverConnect) {
             try {
                 Socket clientSocket = serverSocket.accept();
                 if (!isValidClient(clientSocket)) {
-                    System.out.println("Unknown client connection attempt...");
+                    System.out.println("Unknown client " + clientSocket.getInetAddress() + " connection attempt...");
                     clientSocket.close();
                     System.out.println("Unknown client connection dropped successful");
                     continue;
@@ -53,7 +57,7 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
                     if (clientSockets.offer(clientSocket)) {
                         addToMap(clientSocket);
                         isNewClientConnected = true;
-                        System.out.println("SIB Monitor client connected");
+                        System.out.println("SIB Monitor client " + clientSocket.getInetAddress() + " connected");
                     } else {
                         System.err.println("Client connection limit exceeded");
                         clientSocket.close();
@@ -79,7 +83,17 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
     }
 
     private boolean isValidClient(Socket clientSocket) throws IOException {
-        return (byte) clientSocket.getInputStream().read() == -56;
+        if (clientSockets.isEmpty())
+            if ((byte) clientSocket.getInputStream().read() == -56)
+                return true;
+        for (Socket socket : clientSockets) {
+            if (socket != null && !socket.getInetAddress().equals(clientSocket.getInetAddress()) &&
+                    (byte) clientSocket.getInputStream().read() == -56)
+                return true;
+            System.err.println("Starting a second Sib Monitor client from the " +
+                    clientSocket.getInetAddress() + " ip address was rejected");
+        }
+        return false;
     }
 
     @Override
@@ -94,7 +108,7 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
 
     }
 
-    public void startReceiving() {
+    public void startCaching() {
         new Thread(() -> {
             Set<Socket> uniqueSocketsContainer = new HashSet<>();
             while (true) {
@@ -125,7 +139,7 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
         }).start();
     }
 
-    public Set<Socket> getClients() {
+    public Set<Socket> getActiveClients() {
         return socketsCaches.keySet();
     }
 
@@ -141,16 +155,8 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
                     queue.offer(new byte[][]{s.getBytes(), buffer});    //todo обработать условие когда offer отдает false (если очередь переполнена)
                     if (isInterrupt)
                         return;
-
-                    try {
-                        byte[][] bytes = queue.take();
-                        System.out.println(socket.getInetAddress() + " -> " + new String(bytes[0]) + ":  " + Arrays.toString(bytes[1]));
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-
                 }
-                throw new DisconnectedException("Client disconnected");
+                throw new DisconnectedException("Client " + socket.getInetAddress() + " disconnected");
             } catch (IOException | DisconnectedException e) {
                 System.out.println(e.getMessage());
             } finally {

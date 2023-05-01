@@ -2,6 +2,7 @@ package test;
 
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 
 public abstract class AbstractReceiveSrv implements Receivable, Runnable, Cloneable {
@@ -10,4 +11,6 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable, Clonea
 //
 //    protected byte[] buffer;
 //    protected boolean isNewConnectionCreated = false;
+
+    public abstract Set<Socket> getActiveClients();
 }
