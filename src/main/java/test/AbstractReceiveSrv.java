@@ -1,6 +1,5 @@
 package test;
 
-import exceptions.DisconnectedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,18 +15,18 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-public abstract class AbstractReceiveSrv implements Receivable, Runnable, Cloneable {
+public abstract class AbstractReceiveSrv implements Receivable, Runnable {
     protected final ServerSocket serverSocket;
-    private int port;
-    private int maxNumberOfClient;
+    private final int port;
+    private final int maxNumberOfClient;
     private byte[] buffer;
-    protected BlockingQueue<Socket> clientSockets;
-    protected Map<Socket, LinkedBlockingQueue<byte[][]>> socketsCaches = new ConcurrentHashMap<>();
-    private ReentrantLock lock = new ReentrantLock();
-    private Condition condition = lock.newCondition();
-    private boolean serverConnect = true;
-    private boolean isNewClientConnected = false;
-    private boolean isInterrupt = false;
+    protected volatile BlockingQueue<Socket> clientPool;
+    protected volatile Map<Socket, LinkedBlockingQueue<byte[][]>> cachePool = new ConcurrentHashMap<>(); //todo ключи переделать в String, т.к. иммутабельны
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Condition condition = lock.newCondition();
+    private volatile boolean serverConnect = true;
+    private volatile boolean isNewClientConnected = false;
+    private volatile boolean isInterrupt = false;
 
     private static final Logger log = LogManager.getLogger(AbstractReceiveSrv.class.getSimpleName());
 
@@ -35,10 +34,10 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable, Clonea
         this.port = port;
         this.serverSocket = getServerSocket(port);
         this.maxNumberOfClient = 1;
-        this.clientSockets = new ArrayBlockingQueue<>(maxNumberOfClient);
+        this.clientPool = new ArrayBlockingQueue<>(maxNumberOfClient);
         this.buffer = new byte[DEFAULT_BUFFER_SIZE];
-        log.debug("initialize: port: " + port + ", maxNumberOfClient: " + maxNumberOfClient + ", buffer size: " + buffer.length +
-                ", number of active clients: " + clientSockets.size() + ", history of unique clients: " + socketsCaches.size() +
+        log.debug("Initialize: port: " + port + ", maxNumberOfClient: " + maxNumberOfClient + ", buffer size: " + buffer.length +
+                ", number of active clients: " + clientPool.size() + ", history of unique clients: " + cachePool.size() +
                 ", is connect server: " + serverConnect + ", is new client connected: " + isNewClientConnected);
     }
 
@@ -46,35 +45,34 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable, Clonea
         this.port = port;
         this.serverSocket = getServerSocket(port);
         this.maxNumberOfClient = maxNumberOfClient;
-        this.clientSockets = new ArrayBlockingQueue<>(maxNumberOfClient);
+        this.clientPool = new ArrayBlockingQueue<>(maxNumberOfClient);
         this.buffer = new byte[DEFAULT_BUFFER_SIZE];
-        log.debug("initialize: port: " + port + ", maxNumberOfClient: " + maxNumberOfClient + ", buffer size: " + buffer.length +
-                ", number of active clients: " + clientSockets.size() + ", history of unique clients: " + socketsCaches.size() +
+        log.debug("Initialize: port: " + port + ", maxNumberOfClient: " + maxNumberOfClient + ", buffer size: " + buffer.length +
+                ", number of active clients: " + clientPool.size() + ", history of unique clients: " + cachePool.size() +
                 ", is connect server: " + serverConnect + ", is new client connected: " + isNewClientConnected);
     }
 
     @Override
     public void run() {
-        Thread.currentThread().setName("Adding_New_Clients_Thread_" + Thread.activeCount());
+        Thread.currentThread().setName("Adding_New_Clients_Thread_" + Thread.currentThread().getId());
         log.info("Server started on port " + port);
         while (serverConnect) {
             try {
                 Socket clientSocket = serverSocket.accept();
-                log.debug("Client " + clientSocket.getInetAddress() + " accepted. Number of active clients: " + clientSockets.size());
+                log.debug("Client " + clientSocket.getInetAddress() + " accepted. Number of active clients: " + clientPool.size());
                 if (!isValidClient(clientSocket)) {
-                    log.info("Unknown client " + clientSocket.getInetAddress() + " connection attempt...");
                     clientSocket.close();
-                    log.info("Unknown client connection dropped successful");
+                    log.info("Client connection dropped successful");
                     continue;
                 }
                 try {
                     lock.lock();
                     log.debug("Thread takes lock");
-                    if (clientSockets.offer(clientSocket)) {
-                        log.debug("Client " + clientSocket.getInetAddress() + " has been added to queue");
-                        addToMap(clientSocket);
+                    if (clientPool.offer(clientSocket)) {
                         isNewClientConnected = true;
+                        log.debug("Client " + clientSocket.getInetAddress() + " has been added to queue");
                         log.info("Client " + clientSocket.getInetAddress() + " connected " + isNewClientConnected);
+                        addToMap(clientSocket);
                     } else {
                         log.info("Client connection limit exceeded");
                         clientSocket.close();
@@ -87,6 +85,7 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable, Clonea
                     log.debug("Thread release lock");
                 }
             } catch (SocketTimeoutException e) {
+                log.trace("No new clients. Waiting for new clients");
                 if (isInterrupt) {
                     log.debug("Thread is interrupted");
                     return;
@@ -116,6 +115,7 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable, Clonea
 
     public void stopServer() {
 //        isInterrupt = true;   //todo не удалять. Решить проблему с read() и раскомментировать строку
+        serverConnect = false;
         log.info("Server stopped");
         System.exit(1); //todo удалить после решения проблемы с read()
     }
@@ -124,7 +124,7 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable, Clonea
     public byte[] receiveBytes(Socket clientSocket) {
         byte[][] bytes = null;
         try {
-            bytes = socketsCaches.get(getSameMapSocket(clientSocket)).take();
+            bytes = cachePool.get(getSameMapSocket(clientSocket)).take();
             log.debug("Data retrieves from cache. Buffer size: " + buffer.length);
         } catch (InterruptedException e) {
             log.debug("Thread interrupted while waiting for data from cache", e);
@@ -135,14 +135,13 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable, Clonea
 
     public void startCaching() {
         new Thread(() -> {
-            Thread.currentThread().setName("Start_Caching_Thread_" + Thread.activeCount());
+            Thread.currentThread().setName("Start_Caching_Thread_" + Thread.currentThread().getId());
             while (true) {
                 try {
                     lock.lock();
                     log.debug("Thread takes lock");
                     while (!isNewClientConnected) {
                         try {
-                            log.trace("No new clients. Waiting for new clients");
                             condition.await(500, TimeUnit.MILLISECONDS);
                             if (isInterrupt) {
                                 log.debug("Thread is interrupted");
@@ -150,10 +149,11 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable, Clonea
                             }
                         } catch (InterruptedException e) {
                             log.debug("Thread interrupted while waiting for new clients", e);
+                            return;
                         }
                     }
                     Set<Socket> uniqueSocketsContainer = new HashSet<>();
-                    for (Socket clientSocket : clientSockets) {
+                    for (Socket clientSocket : clientPool) {
                         if (uniqueSocketsContainer.add(clientSocket) && clientSocket != null) {
                             log.debug("New unique client " + clientSocket.getInetAddress() + " is connected");
                             writeToQueueFromSocket(clientSocket);
@@ -174,49 +174,52 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable, Clonea
 
     private void writeToQueueFromSocket(Socket socket) {
         new Thread(() -> {
-            Thread.currentThread().setName("Write_Data_Thread_" + Thread.activeCount());
+            Thread.currentThread().setName("Write_Data_Thread_" + Thread.currentThread().getId());
             Socket mapSocket = getSameMapSocket(socket);
-            LinkedBlockingQueue<byte[][]> queue = socketsCaches.get(mapSocket);
+            LinkedBlockingQueue<byte[][]> cache = cachePool.get(mapSocket);
             try (InputStream is = socket.getInputStream()) {
                 while (!isClosedInputStream(is)) { //todo метод блокирует поток и сервер не может быть остановлен при вызове мотода stopServer(), который прерывает поток методом interrupt()
                     LocalDateTime dateTime = LocalDateTime.now();
                     String s = dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-                    queue.offer(new byte[][]{s.getBytes(), buffer});    //todo обработать условие когда offer отдает false (если очередь переполнена)
+                    cache.offer(new byte[][]{s.getBytes(), buffer});    //todo обработать условие когда offer отдает false (если очередь переполнена)
+                    System.out.println(Thread.activeCount());
                     log.debug("Data added to socket " + mapSocket.getInetAddress() + " cache");
                     if (isInterrupt) {
                         log.debug("Thread is interrupted");
                         return;
                     }
                 }
-                throw new DisconnectedException("Client " + socket.getInetAddress() + " disconnected");
+                log.info("Client " + socket.getInetAddress() + " disconnected");
             } catch (IOException e) {
-                log.debug(e);
-            } catch (DisconnectedException e) {
-                log.info(e.getMessage());
+                log.debug("Exception in writeToQueueFromSocket method", e);
+                log.info("May be SibReceiver app client " +socket.getInetAddress() + " was closed");
             } finally {
                 try {
                     socket.close();//todo закрывать снаружи?
                     log.debug("Client socket " + socket.getInetAddress() + " is closed: " + socket.isClosed());
-                    clientSockets.remove(socket);
+                    clientPool.remove(socket);
                     log.debug("Client " + socket.getInetAddress() + " removed from queue");
                 } catch (IOException e) {
                     log.error(e);
+                } finally {
+                    log.debug("Thread is interrupted");
+                    Thread.currentThread().interrupt();
                 }
             }
         }).start();
     }
 
     protected Socket getSameMapSocket(Socket socket) {
-        return socketsCaches.keySet().stream()
+        return cachePool.keySet().stream()
                 .filter(mapSocket -> mapSocket.getInetAddress().equals(socket.getInetAddress()))
                 .findFirst().orElse(null);
     }
 
     public Set<Socket> getActiveClients() {
-        return socketsCaches.keySet();
+        return cachePool.keySet();
     }
 
-    protected boolean isClosedInputStream(InputStream is) {
+    protected boolean isClosedInputStream(InputStream is) throws IOException {
         try {
             if (is.read(buffer) == -1)
                 return true;
