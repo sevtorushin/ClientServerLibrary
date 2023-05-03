@@ -49,7 +49,7 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
     @Override
     protected void addToMap(Socket socket) {
         if (getSameMapSocket(socket) == null) {
-            cachePool.put(socket, new LinkedBlockingQueue<>());
+            cachePool.put(socket.getInetAddress().toString(), new LinkedBlockingQueue<>());
             log.debug("Added unique socket " + socket.getInetAddress() + " to socketsCache");
         }
     }

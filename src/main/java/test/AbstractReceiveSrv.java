@@ -21,7 +21,7 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable {
     private final int maxNumberOfClient;
     private byte[] buffer;
     protected volatile BlockingQueue<Socket> clientPool;
-    protected volatile Map<Socket, LinkedBlockingQueue<byte[][]>> cachePool = new ConcurrentHashMap<>(); //todo ключи переделать в String, т.к. иммутабельны
+    protected volatile Map<String, LinkedBlockingQueue<byte[][]>> cachePool = new ConcurrentHashMap<>(); //todo ключи переделать в String, т.к. иммутабельны
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition condition = lock.newCondition();
     private volatile boolean serverConnect = true;
@@ -121,10 +121,10 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable {
     }
 
     @Override
-    public byte[] receiveBytes(Socket clientSocket) {
+    public byte[] receiveBytes(String client) {
         byte[][] bytes = null;
         try {
-            bytes = cachePool.get(getSameMapSocket(clientSocket)).take();
+            bytes = cachePool.get(client).take();
             log.debug("Data retrieves from cache. Buffer size: " + buffer.length);
         } catch (InterruptedException e) {
             log.debug("Thread interrupted while waiting for data from cache", e);
@@ -136,6 +136,7 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable {
     public void startCaching() {
         new Thread(() -> {
             Thread.currentThread().setName("Start_Caching_Thread_" + Thread.currentThread().getId());
+            Set<Socket> uniqueSocketsContainer = new HashSet<>();
             while (true) {
                 try {
                     lock.lock();
@@ -152,7 +153,6 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable {
                             return;
                         }
                     }
-                    Set<Socket> uniqueSocketsContainer = new HashSet<>();
                     for (Socket clientSocket : clientPool) {
                         if (uniqueSocketsContainer.add(clientSocket) && clientSocket != null) {
                             log.debug("New unique client " + clientSocket.getInetAddress() + " is connected");
@@ -175,15 +175,14 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable {
     private void writeToQueueFromSocket(Socket socket) {
         new Thread(() -> {
             Thread.currentThread().setName("Write_Data_Thread_" + Thread.currentThread().getId());
-            Socket mapSocket = getSameMapSocket(socket);
-            LinkedBlockingQueue<byte[][]> cache = cachePool.get(mapSocket);
+            String ipClient = getSameMapSocket(socket);
+            LinkedBlockingQueue<byte[][]> cache = cachePool.get(ipClient);
             try (InputStream is = socket.getInputStream()) {
                 while (!isClosedInputStream(is)) { //todo метод блокирует поток и сервер не может быть остановлен при вызове мотода stopServer(), который прерывает поток методом interrupt()
                     LocalDateTime dateTime = LocalDateTime.now();
                     String s = dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
                     cache.offer(new byte[][]{s.getBytes(), buffer});    //todo обработать условие когда offer отдает false (если очередь переполнена)
-                    System.out.println(Thread.activeCount());
-                    log.debug("Data added to socket " + mapSocket.getInetAddress() + " cache");
+                    log.debug("Data added to socket " + ipClient + " cache");
                     if (isInterrupt) {
                         log.debug("Thread is interrupted");
                         return;
@@ -203,19 +202,19 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable {
                     log.error(e);
                 } finally {
                     log.debug("Thread is interrupted");
-                    Thread.currentThread().interrupt();
+//                    Thread.currentThread().interrupt();
                 }
             }
         }).start();
     }
 
-    protected Socket getSameMapSocket(Socket socket) {
+    protected String getSameMapSocket(Socket socket) {
         return cachePool.keySet().stream()
-                .filter(mapSocket -> mapSocket.getInetAddress().equals(socket.getInetAddress()))
+                .filter(ip -> ip.equals(socket.getInetAddress().toString()))
                 .findFirst().orElse(null);
     }
 
-    public Set<Socket> getActiveClients() {
+    public Set<String> getActiveClients() {
         return cachePool.keySet();
     }
 
@@ -237,4 +236,11 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable {
 
     protected abstract void addToMap(Socket socket);
 
+    public int cacheSize(){
+        return cachePool.size();
+    }
+
+    public boolean isServerConnect() {
+        return serverConnect;
+    }
 }
