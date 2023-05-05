@@ -10,9 +10,8 @@ import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 
-public abstract class AbstractClient implements Transmittable, Closeable {
+public abstract class AbstractClient implements Transmit, Closeable {
     private final Socket socket;
     private InputStream inpStrm;
     private OutputStream outStrm;

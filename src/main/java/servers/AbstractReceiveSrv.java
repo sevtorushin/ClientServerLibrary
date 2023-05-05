@@ -1,4 +1,4 @@
-package test;
+package servers;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.net.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -22,6 +23,7 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable {
     private byte[] buffer;
     protected volatile BlockingQueue<Socket> clientPool;
     protected volatile Map<String, LinkedBlockingQueue<byte[][]>> cachePool = new ConcurrentHashMap<>();
+    private Validator validator;
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition condition = lock.newCondition();
     private volatile boolean isServerConnected = true;
@@ -61,11 +63,14 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable {
             try {
                 Socket clientSocket = serverSocket.accept();
                 log.debug("Client " + clientSocket.getInetAddress() + " accepted");
-                if (!isValidClient(clientSocket)) {
+                if (!(validator.authenticate(clientSocket) && validator.authorize(clientSocket) &&
+                        validator.verify(clientSocket))) {
+                    log.debug("Client " + clientSocket.getInetAddress() +" invalid. Connection will be dropped");
                     clientSocket.close();
                     log.info("Client connection dropped successful");
                     continue;
                 }
+                log.debug("Client " + clientSocket.getInetAddress() + " is valid");
                 try {
                     lock.lock();
                     log.debug("Thread takes lock");
@@ -119,11 +124,11 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable {
     }
 
     @Override
-    public byte[] receiveBytes(String client) {
+    public byte[] receiveBytes(String source) {
         byte[][] bytes = null;
         try {
-            bytes = cachePool.get(client).take();
-            log.debug("Data retrieves from socket cache " + client);
+            bytes = cachePool.get(source).take();
+            log.debug("Data retrieves from socket cache " + source);
         } catch (InterruptedException e) {
             log.debug("Thread was interrupted while waiting for data from cache", e);
         }
@@ -175,7 +180,10 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable {
                 while (!isClosedInputStream(is)) { //todo метод блокирует поток и сервер не может быть остановлен при вызове мотода stopServer(), который прерывает поток методом interrupt()
                     LocalDateTime dateTime = LocalDateTime.now();
                     String s = dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-                    cache.offer(new byte[][]{s.getBytes(), buffer});    //todo обработать условие когда offer отдает false (если очередь переполнена)
+                    if (!cache.offer(new byte[][]{s.getBytes(), buffer})) {    //todo обработать условие когда offer отдает false (если очередь переполнена)
+                        log.error("Local cache full");
+                        continue;
+                    }
                     log.debug("Data added to socket cache " + ipClient);
                     if (!isServerConnected) {
                         log.debug("Thread is interrupted");
@@ -209,6 +217,14 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable {
         return cachePool.keySet();
     }
 
+    public ArrayList<Socket> getClientPool() {
+        return new ArrayList<Socket>(clientPool);
+    }
+
+    protected void setValidator(Validator validator) {
+        this.validator = validator;
+    }
+
     protected boolean isClosedInputStream(InputStream is) throws IOException {
         try {
             if (is.read(buffer) == -1)
@@ -223,7 +239,7 @@ public abstract class AbstractReceiveSrv implements Receivable, Runnable {
         return buffer;
     }
 
-    protected abstract boolean isValidClient(Socket clientSocket);
+//    protected abstract boolean isValidClient(Socket clientSocket);
 
     protected abstract void addToMap(Socket socket);
 

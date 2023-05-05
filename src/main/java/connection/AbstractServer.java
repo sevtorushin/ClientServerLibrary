@@ -8,7 +8,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.*;
 
-public abstract class AbstractServer implements Transmittable, Closeable {
+public abstract class AbstractServer implements Transmit, Closeable {
     private final ServerSocket serverSocket;
     private final Socket socket;
     private InputStream inpStrm;

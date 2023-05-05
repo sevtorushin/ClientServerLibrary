@@ -4,7 +4,7 @@ import exceptions.DisconnectedException;
 
 import java.io.IOException;
 
-public interface Transmittable {
+public interface Transmit {
     byte[] receiveBytes() throws IOException, DisconnectedException;
     void sendBytes(byte[] bytes) throws IOException;
 }

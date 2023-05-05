@@ -1,24 +1,4 @@
-import connection.AbstractClient;
-import connection.SIBReceiverServer;
-import connection.TransferClient;
-import connection.WITSReceivingClient;
-import entity.SIBParameter;
-import entity.WITSPackage;
-import entity.WITSPackageTimeBased;
-import exceptions.BuildObjectException;
-import exceptions.DisconnectedException;
-import service.SIBConverter;
-import service.SIBStreamEmulator;
-import service.WITSConverter;
-import service.WITSStreamEmulator;
-import test.AbstractReceiveSrv;
-import test.SIBMonitorSrv;
-import test.WITSRandomGenerator;
-
 import java.io.*;
-import java.net.*;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
 
 public class Main {
 
@@ -221,6 +201,7 @@ public class Main {
 //                    System.out.println("Try reconnect...");
 //            }
 //        }
+
     }
 }
 
