@@ -1,5 +1,6 @@
 package servers;
 
+import check.SibValidator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -10,17 +11,16 @@ import java.util.concurrent.*;
 
 public class SIBMonitorSrv extends AbstractReceiveSrv {
     private final int cacheSize = 1_000_000;
-    Validator validator = new SibValidator(this);
     private static final Logger log = LogManager.getLogger(SIBMonitorSrv.class.getSimpleName());
 
     public SIBMonitorSrv(int port) {
         super(port, 22);
-        super.setValidator(validator);
+        super.setValidator(new SibValidator(this));
     }
 
     public SIBMonitorSrv(int port, int maxNumberOfClient) {
         super(port, maxNumberOfClient, 22);
-        super.setValidator(validator);
+        super.setValidator(new SibValidator(this));
     }
 
     @Override

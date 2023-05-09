@@ -1,7 +1,8 @@
-package servers;
+package check;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import servers.SIBMonitorSrv;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -30,6 +31,11 @@ public class SibValidator extends AbstractValidator {
             log.debug("Client " + clientSocket.getInetAddress() + " has been authorized");
             return true;
         }
+    }
+
+    @Override
+    public boolean authenticate(Socket client) {
+        return true; //todo добавить логику аутентификации входящего клиента
     }
 
     @Override

@@ -1,4 +1,4 @@
-package servers;
+package check;
 
 import java.net.Socket;
 

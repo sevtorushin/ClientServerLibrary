@@ -1,4 +1,13 @@
+import clients.AbstractClient;
+import clients.TransferClient;
+import servers.AbstractServer;
+import servers.MultifunctionalServer;
+
 import java.io.*;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class Main {
 
@@ -201,7 +210,12 @@ public class Main {
 //                    System.out.println("Try reconnect...");
 //            }
 //        }
-
+        AbstractServer server = new MultifunctionalServer(6000, 2);
+        new Thread(server).start();
+//        Socket socket = new Socket("127.0.0.1", 6000);
+//        socket.getOutputStream().write(1);
+        AbstractClient client = new TransferClient("127.0.0.1", 6000);
+        client.connectToServer();
     }
 }
 
