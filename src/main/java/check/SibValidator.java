@@ -9,11 +9,10 @@ import java.net.Socket;
 import java.util.List;
 
 public class SibValidator extends AbstractValidator {
-    private final SIBMonitorSrv server;
     private static final Logger log = LogManager.getLogger(SibValidator.class.getSimpleName());
 
-    public SibValidator(SIBMonitorSrv server) {
-        this.server = server;
+    public SibValidator() {
+        super(new KeyManager("c:\\users\\public\\server_keys.txt"));
     }
 
     @Override
@@ -34,27 +33,28 @@ public class SibValidator extends AbstractValidator {
     }
 
     @Override
-    public boolean authenticate(Socket client) {
+    public boolean authenticate(Socket clientSocket) {
+
         return true; //todo добавить логику аутентификации входящего клиента
     }
 
     @Override
     public boolean verify(Socket clientSocket) {
-        List<Socket> clientPool = server.getClientPool();
-        if (clientPool.isEmpty()) {
-            log.debug("Client " + clientSocket.getInetAddress() + " has been verified");
-            return true;
-        }
-        for (Socket socket : clientPool) {
-            if (socket.getInetAddress().equals(clientSocket.getInetAddress())) {
-                log.info("Starting a second Sib Monitor client from the " +
-                        clientSocket.getInetAddress() + " ip address was rejected");
-                return false;
-            } else {
-                log.debug("Client " + clientSocket.getInetAddress() + " has been verified");
-                return true;
-            }
-        }
+//        List<Socket> clientPool = server.getClientPool();
+//        if (clientPool.isEmpty()) {
+//            log.debug("Client " + clientSocket.getInetAddress() + " has been verified");
+//            return true;
+//        }
+//        for (Socket socket : clientPool) {
+//            if (socket.getInetAddress().equals(clientSocket.getInetAddress())) {
+//                log.info("Starting a second Sib Monitor client from the " +
+//                        clientSocket.getInetAddress() + " ip address was rejected");
+//                return false;
+//            } else {
+//                log.debug("Client " + clientSocket.getInetAddress() + " has been verified");
+//                return true;
+//            }
+//        }
         return false;
     }
 }

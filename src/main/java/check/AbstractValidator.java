@@ -1,36 +1,39 @@
 package check;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.util.ArrayList;
+import java.io.IOException;
+import java.net.Socket;
+import java.util.Set;
 
 public abstract class AbstractValidator implements Validator {
-    private ArrayList<String> publicKeys = new ArrayList<>();
-    private String clientIdentifier;
-    private static final Logger log = LogManager.getLogger(AbstractValidator.class.getSimpleName());
+    private final KeyManager keyManager;
 
-    public void loadPublicKeys(String path) {
+    public AbstractValidator(KeyManager keyManager) {
+        this.keyManager = keyManager;
+    }
+
+    public KeyManager getKeyManager() {
+        return keyManager;
+    }
+
+    @Override
+    public boolean authenticate(Socket clientSocket) {
+        byte[] bytes = new byte[128];
+        Set<String> keys = keyManager.getPublicKeys();
+        if (keys.isEmpty()){
+            keyManager.createKeyFile();
+            System.err.println("Keys file updated");
+        }
         try {
-            BufferedReader reader = new BufferedReader(new FileReader(path));
-            reader.lines().forEach(publicKeys::add);
-        } catch (FileNotFoundException e) {
+            clientSocket.getInputStream().read(bytes);
+            String request = new String(bytes).trim();
+            String key = request.substring(request.indexOf("\n")+1);
+            if (keys.contains(key)) {
+                keyManager.removeKey(key);
+                return true;
+            }
+        } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public ArrayList<String> getPublicKeys() {
-        return publicKeys;
-    }
-
-    public String getClientIdentifier() {
-        return clientIdentifier;
-    }
-
-    public void setClientIdentifier(String clientIdentifier) {
-        this.clientIdentifier = clientIdentifier;
+        return false;
     }
 }

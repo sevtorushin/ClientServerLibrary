@@ -14,13 +14,12 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
     private static final Logger log = LogManager.getLogger(SIBMonitorSrv.class.getSimpleName());
 
     public SIBMonitorSrv(int port) {
-        super(port, 22);
-        super.setValidator(new SibValidator(this));
+        super(port, 22, new SibValidator());
     }
 
     public SIBMonitorSrv(int port, int maxNumberOfClient) {
-        super(port, maxNumberOfClient, 22);
-        super.setValidator(new SibValidator(this));
+
+        super(port, maxNumberOfClient, 22, new SibValidator());
     }
 
     @Override

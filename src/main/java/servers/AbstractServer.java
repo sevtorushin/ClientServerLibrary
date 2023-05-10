@@ -30,22 +30,24 @@ public abstract class AbstractServer implements Runnable{
 
     private static final Logger log = LogManager.getLogger(AbstractServer.class.getSimpleName());
 
-    public AbstractServer(int port) {
+    public AbstractServer(int port, AbstractValidator validator) {
         this.port = port;
         this.serverSocket = getServerSocket(port);
         this.maxNumberOfClient = 1;
         this.clientPool = new ArrayBlockingQueue<>(maxNumberOfClient);
+        this.validator = validator;
         log.debug("Initialize: port: " + port + ", maxNumberOfClient: " + maxNumberOfClient +
                 ", number of active clients: " + clientPool.size() + ", number of unique clients: " +
                 cachePool.size() + ", is connect server: " + isServerConnected +
                 ", is new client connected: " + isNewClientConnected);
     }
 
-    public AbstractServer(int port, int maxNumberOfClient) {
+    public AbstractServer(int port, int maxNumberOfClient, AbstractValidator validator) {
         this.port = port;
         this.serverSocket = getServerSocket(port);
         this.maxNumberOfClient = maxNumberOfClient;
         this.clientPool = new ArrayBlockingQueue<>(maxNumberOfClient);
+        this.validator = validator;
         log.debug("Initialize: port: " + port + ", maxNumberOfClient: " + maxNumberOfClient +
                 ", number of active clients: " + clientPool.size() + ", number of unique clients: " +
                 cachePool.size() + ", is connect server: " + isServerConnected +
@@ -122,10 +124,6 @@ public abstract class AbstractServer implements Runnable{
 
     public ArrayList<Socket> getClientPool() {
         return new ArrayList<Socket>(clientPool);
-    }
-
-    protected void setValidator(AbstractValidator validator) {
-        this.validator = validator;
     }
 
     protected AbstractValidator getValidator() {

@@ -1,5 +1,6 @@
 package servers;
 
+import check.AbstractValidator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -57,13 +58,13 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
 //                isNewClientConnected);
 //    }
 
-    public AbstractReceiveSrv(int port, int DEFAULT_BUFFER_SIZE){
-        super(port);
+    public AbstractReceiveSrv(int port, int DEFAULT_BUFFER_SIZE, AbstractValidator validator){
+        super(port, validator);
         this.buffer = new byte[DEFAULT_BUFFER_SIZE];
     }
 
-    public AbstractReceiveSrv(int port, int maxNumberOfClient, int DEFAULT_BUFFER_SIZE){
-        super(port, maxNumberOfClient);
+    public AbstractReceiveSrv(int port, int maxNumberOfClient, int DEFAULT_BUFFER_SIZE, AbstractValidator validator){
+        super(port, maxNumberOfClient, validator);
         this.buffer = new byte[DEFAULT_BUFFER_SIZE];
     }
 

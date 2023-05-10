@@ -2,8 +2,8 @@ package check;
 
 import java.net.Socket;
 
-public class MultifunctionalServerValidator extends AbstractValidator{
-    public MultifunctionalServerValidator(KeyManager keyManager) {
+public class TransferClientValidator extends AbstractValidator {
+    public TransferClientValidator(KeyManager keyManager) {
         super(keyManager);
     }
 

@@ -1,24 +1,29 @@
 package clients;
 
-import check.ClientValidator;
+import check.KeyManager;
+import check.TransferClientValidator;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.ByteBuffer;
 
 public class TransferClient extends AbstractClient implements Transmittable {
-    private String identifier = "urg-u66-6603";
 
-    public TransferClient(String host, int port) {
-        super(host, port);
-        setValidator(new ClientValidator("C:\\Users\\Public\\client_key.txt", this));
+    private final ByteBuffer buffer = ByteBuffer.allocate(512);
+
+    public TransferClient(String host, int port, String id) {
+        super(host, port, id,
+                new TransferClientValidator(new KeyManager("c:\\users\\public\\client_keys.txt")));
     }
 
     @Override
     public void sendBytes(byte[] bytes) {
+        buffer.put((getId() + "\r\n").getBytes()).put((getSessionKey() + "\r\n").getBytes()).put(bytes);
         try {
-            getOutStrm().write(bytes);
+            getOutStrm().write(buffer.array());
+            buffer.clear();
         } catch (SocketException e) {
             System.out.println("Connection was reset. Reconnect...");
             connectToServer();
@@ -32,7 +37,7 @@ public class TransferClient extends AbstractClient implements Transmittable {
         }
     }
 
-    public void startTransferTo(String anotherHost, int anotherPort){
+    public void startTransferTo(String anotherHost, int anotherPort) {
         try {
             Socket anotherSocket = setSocket(anotherHost, anotherPort);
             OutputStream os = anotherSocket.getOutputStream();
@@ -46,9 +51,5 @@ public class TransferClient extends AbstractClient implements Transmittable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public String getIdentifier() {
-        return identifier;
     }
 }
