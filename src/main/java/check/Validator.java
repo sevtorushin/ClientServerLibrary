@@ -1,9 +1,11 @@
 package check;
 
+import clients.AbstractClient;
+
 import java.net.Socket;
 
 public interface Validator {
-    boolean verify(Socket client);
-    boolean authorize(Socket client);
-    boolean authenticate(Socket client);
+    boolean verify(byte[] data);
+    boolean authorize(byte[] data);
+    boolean authenticate(byte[] data);
 }

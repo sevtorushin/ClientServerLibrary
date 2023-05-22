@@ -1,16 +1,14 @@
 package servers;
 
 import check.SibValidator;
+import clients.AbstractClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.*;
-import java.util.concurrent.*;
 
 public class SIBMonitorSrv extends AbstractReceiveSrv {
-    private final int cacheSize = 1_000_000;
     private static final Logger log = LogManager.getLogger(SIBMonitorSrv.class.getSimpleName());
 
     public SIBMonitorSrv(int port) {
@@ -23,11 +21,14 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
     }
 
     @Override
-    protected void addToMap(Socket socket) {
-        if (getSameMapSocket(socket) == null) {
-            cachePool.put(socket.getInetAddress().toString(), new LinkedBlockingQueue<>(cacheSize));
-            log.debug("Added unique socket " + socket.getInetAddress() + " to socketsCache");
+    protected boolean validate(byte[] data) {
+        boolean contains = clientPool.stream()
+                .anyMatch(client -> client.getInetAddress().toString().equals("/127.0.0.1"));
+        if (contains) {
+            log.info("Starting a second Sib Monitor client was rejected");
+            return false;
         }
+        return getValidator().authenticate(data);
     }
 
     @Override
@@ -38,5 +39,20 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
             return true;
         }
         return false;
+    }
+
+    @Override
+    protected AbstractClient getClient(byte[] data) {
+        String clientId = "SibReceiver";
+        AbstractClient client = new SibClient(null, 0, clientId);
+        client.setSessionKey("constant");
+        return client;
+    }
+
+    private static class SibClient extends AbstractClient {
+
+        public SibClient(String host, int port, String id) {
+            super(host, port, id, null);
+        }
     }
 }

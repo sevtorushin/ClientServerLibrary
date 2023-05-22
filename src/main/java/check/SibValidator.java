@@ -2,7 +2,6 @@ package check;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import servers.SIBMonitorSrv;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -16,30 +15,22 @@ public class SibValidator extends AbstractValidator {
     }
 
     @Override
-    public boolean authorize(Socket clientSocket) {
-        byte result = 0;
-        try {
-            result = (byte) clientSocket.getInputStream().read();
-        } catch (IOException e) {
-            log.error("Read error from InputStream", e);
-        }
-        if (result != -56) {
-            log.info("Unknown client " + clientSocket.getInetAddress() + " connection attempt...");
+    public boolean authorize(byte[] data) {
+        return true;
+    }
+
+    @Override
+    public boolean authenticate(byte[] data) {
+        if (data[0] != -56) {
+            log.info("Unknown client connection attempt...");
             return false;
-        } else {
-            log.debug("Client " + clientSocket.getInetAddress() + " has been authorized");
-            return true;
         }
+        log.debug("Client has been authorized");
+        return true;
     }
 
     @Override
-    public boolean authenticate(Socket clientSocket) {
-
-        return true; //todo добавить логику аутентификации входящего клиента
-    }
-
-    @Override
-    public boolean verify(Socket clientSocket) {
+    public boolean verify(byte[] data) {
 //        List<Socket> clientPool = server.getClientPool();
 //        if (clientPool.isEmpty()) {
 //            log.debug("Client " + clientSocket.getInetAddress() + " has been verified");
@@ -52,9 +43,9 @@ public class SibValidator extends AbstractValidator {
 //                return false;
 //            } else {
 //                log.debug("Client " + clientSocket.getInetAddress() + " has been verified");
-//                return true;
+        return true;
 //            }
 //        }
-        return false;
+//        return false;
     }
 }

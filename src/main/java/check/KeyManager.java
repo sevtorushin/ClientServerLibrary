@@ -10,7 +10,7 @@ public class KeyManager {
     private final String keyPath;
     private File file;
     private int keyLength = 50;
-    private int amountKey = 10;
+    private int amountKey = 100;
 
     public KeyManager(String keyPath) {
         this.keyPath = keyPath;

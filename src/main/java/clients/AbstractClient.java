@@ -1,30 +1,32 @@
 package clients;
 
-import check.AbstractValidator;
+import check.KeyManager;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Objects;
 
-public abstract class AbstractClient {
+public class AbstractClient implements Serializable {
     private String id;
     private String sessionKey;
-    private Socket socket;
-    private final String host;
-    private final int port;
-    private OutputStream outStrm;
-    private InputStream inpStrm;
-    private AbstractValidator validator;
+    private transient Socket socket;
+    private String host;
+    private int port;
+    private transient OutputStream outStrm;
+    private transient InputStream inpStrm;
+    private transient final KeyManager keyManager;
+    private static final Logger log = LogManager.getLogger(AbstractClient.class.getSimpleName());
 
-    public AbstractClient(String host, int port, String id, AbstractValidator validator) {
+    public AbstractClient(String host, int port, String id, KeyManager keyManager) {
         this.host = host;
         this.port = port;
         this.id = id;
-        this.validator = validator;
+        this.keyManager = keyManager;
     }
 
     protected Socket setSocket(String hostName, int port) {
@@ -32,31 +34,33 @@ public abstract class AbstractClient {
         try {
             socket = new Socket(InetAddress.getByName(hostName), port);
         } catch (UnknownHostException e) {
-            System.err.println("Unknown host " + e);
+            log.error("Unknown host " + e);
         } catch (ConnectException e) {
-            System.err.println("The server is not running on the specified endpoint\r\n" + e);
+            log.error("The server is not running on the specified endpoint\r\n" + e);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e);
         }
         return socket;
     }
 
     public void connectToServer() {
+        byte[] message = new byte[512];
         try {
-            validator.getKeyManager().removeKey(sessionKey);
+            keyManager.removeKey(sessionKey);
             this.socket = setSocket(host, port);
-            sessionKey = validator.getKeyManager().getKey();
+            sessionKey = keyManager.getKey();
             inpStrm = socket.getInputStream();
             outStrm = socket.getOutputStream();
 
-            outStrm.write((id + "\r\n").getBytes());
-            outStrm.write(sessionKey.getBytes());
-            validator.getKeyManager().removeKey(sessionKey);
-//            validator.authenticate(socket);
-//            validator.authorize(socket);
-//            validator.verify(socket);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(512);
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+            oos.writeObject(this);
+            baos.writeTo(outStrm);
+            keyManager.removeKey(sessionKey);
+            socket.getInputStream().read(message);
+            log.info(new String(message));
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e);
         }
     }
 
@@ -68,6 +72,10 @@ public abstract class AbstractClient {
         return socket;
     }
 
+    public void setHost(String host) {
+        this.host = host.replace("/", "");
+    }
+
     public OutputStream getOutStrm() {
         return outStrm;
     }
@@ -76,7 +84,37 @@ public abstract class AbstractClient {
         return inpStrm;
     }
 
+    public void setId(String id) {
+        this.id = id;
+    }
+
     public String getId() {
         return id;
+    }
+
+    public String getHost() {
+        return host.replace("/", "");
+    }
+
+    public void setSessionKey(String sessionKey) {
+        this.sessionKey = sessionKey;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AbstractClient client = (AbstractClient) o;
+        return  Objects.equals(id, client.id) &&
+                Objects.equals(host, client.host);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, host);
     }
 }

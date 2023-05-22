@@ -1,11 +1,17 @@
 package check;
 
+import clients.AbstractClient;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.Socket;
+import java.io.ObjectInputStream;
 import java.util.Set;
 
 public abstract class AbstractValidator implements Validator {
     private final KeyManager keyManager;
+    private static final Logger log = LogManager.getLogger(AbstractValidator.class.getSimpleName());
 
     public AbstractValidator(KeyManager keyManager) {
         this.keyManager = keyManager;
@@ -16,24 +22,25 @@ public abstract class AbstractValidator implements Validator {
     }
 
     @Override
-    public boolean authenticate(Socket clientSocket) {
-        byte[] bytes = new byte[128];
+    public boolean authenticate(byte[] data) {
+        AbstractClient client = null;
+        try {
+            ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(data));
+            client = (AbstractClient) ois.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            log.info("Unknown client connection attempt...");
+            return false;
+        }
         Set<String> keys = keyManager.getPublicKeys();
         if (keys.isEmpty()){
             keyManager.createKeyFile();
-            System.err.println("Keys file updated");
+            log.info("Keys file updated");
         }
-        try {
-            clientSocket.getInputStream().read(bytes);
-            String request = new String(bytes).trim();
-            String key = request.substring(request.indexOf("\n")+1);
+            String key = client.getSessionKey();
             if (keys.contains(key)) {
                 keyManager.removeKey(key);
                 return true;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         return false;
     }
 }

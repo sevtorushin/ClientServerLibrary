@@ -1,10 +1,13 @@
 package servers;
 
 import check.AbstractValidator;
+import check.Validator;
+import clients.AbstractClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Map;
@@ -16,15 +19,15 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-public abstract class AbstractServer implements Runnable{
+public abstract class AbstractServer implements Runnable {
     protected final ServerSocket serverSocket;
     private final int port;
     private final int maxNumberOfClient;
     protected volatile BlockingQueue<Socket> clientPool;
-    protected volatile Map<String, LinkedBlockingQueue<byte[][]>> cachePool = new ConcurrentHashMap<>();
+    protected volatile Map<AbstractClient, LinkedBlockingQueue<byte[][]>> cachePool = new ConcurrentHashMap<>();
     protected final ReentrantLock lock = new ReentrantLock();
     protected final Condition condition = lock.newCondition();
-    private AbstractValidator validator;
+    private final Validator validator;
     private volatile boolean isServerConnected = true;
     private volatile boolean isNewClientConnected = false;
 
@@ -62,13 +65,23 @@ public abstract class AbstractServer implements Runnable{
             try {
                 Socket clientSocket = serverSocket.accept();
                 log.debug("Client " + clientSocket.getInetAddress() + " accepted");
-                if (!(validator.authenticate(clientSocket) && validator.authorize(clientSocket) &&
-                        validator.verify(clientSocket))) {
-                    log.debug("Client " + clientSocket.getInetAddress() +" invalid. Connection will be dropped");
+
+                InputStream is = clientSocket.getInputStream();
+                byte[] data = new byte[512];
+                is.read(data);
+
+                if (!validate(data)) {
+                    clientSocket.getOutputStream().write("Validation failed. Your reconnected".getBytes());
+                    log.debug("Client " + clientSocket.getInetAddress() + " invalid. Connection will be dropped");
                     clientSocket.close();
                     log.info("Client connection dropped successful");
                     continue;
                 }
+
+                AbstractClient client = getClient(data);
+                client.setPort(clientSocket.getPort());
+                client.setHost(clientSocket.getInetAddress().toString());
+
                 log.debug("Client " + clientSocket.getInetAddress() + " is valid");
                 try {
                     lock.lock();
@@ -77,10 +90,14 @@ public abstract class AbstractServer implements Runnable{
                         isNewClientConnected = true;
                         log.debug("Client " + clientSocket.getInetAddress() +
                                 " has been added to the queue. Number of active clients: " + clientPool.size());
+                        if (!addToMap(client))
+                            clientSocket.close();
                         log.info("Client " + clientSocket.getInetAddress() + " connected: " + isNewClientConnected);
-                        addToMap(clientSocket);
+                        clientSocket.getOutputStream().write("Your are connected successful".getBytes());
                     } else {
                         log.info("Client connection limit exceeded");
+                        clientSocket.getOutputStream().write(("Client connection limit exceeded. " +
+                                "Your reconnected").getBytes());
                         clientSocket.close();
                         log.debug("Client socket is closed: " + clientSocket.isClosed());
                         continue;
@@ -126,7 +143,7 @@ public abstract class AbstractServer implements Runnable{
         return new ArrayList<Socket>(clientPool);
     }
 
-    protected AbstractValidator getValidator() {
+    protected Validator getValidator() {
         return validator;
     }
 
@@ -146,15 +163,25 @@ public abstract class AbstractServer implements Runnable{
         isNewClientConnected = newClientConnected;
     }
 
-    protected String getSameMapSocket(Socket socket) {
+    protected AbstractClient getSameMapSocket(Socket socket) {
         return cachePool.keySet().stream()
-                .filter(ip -> ip.equals(socket.getInetAddress().toString()))
+                .filter(client -> client.getHost().equals(socket.getInetAddress().toString().replace("/", "")))
                 .findFirst().orElse(null);
     }
 
-    public Set<String> getActiveClients() {
+    public Set<AbstractClient> getActiveClients() {
         return cachePool.keySet();
     }
 
-    protected abstract void addToMap(Socket clientSocket);
+    protected abstract boolean validate (byte[] data);
+
+    protected abstract AbstractClient getClient(byte[] data);
+
+    protected boolean addToMap(AbstractClient client) {
+        if (!cachePool.containsKey(client)) {
+            cachePool.put(client, new LinkedBlockingQueue<>(1_000_000)); //todo Размер кэша данных вынести в поле этого класса
+            log.debug("Added unique client " + client.getHost() + " to cachePool");
+        }
+        return true;
+    }
 }
