@@ -49,6 +49,8 @@ public class WITSConverter implements Convertable<WITSPackage> {
             f.setAccessible(true);
             String code = f.getAnnotation(WITSRecordCode.class).code();
             try {
+                if (fieldValues[Integer.parseInt(code)]==null)
+                    continue;
                 f.set(witsPackage, fieldValues[Integer.parseInt(code)]);
             } catch (IllegalAccessException e) {
                 e.printStackTrace();

@@ -48,7 +48,7 @@ public class KeyManager {
 
     public void createKeyFile() {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-            String s = null;
+            String s;
             for (int i = 0; i < amountKey; i++) {
                 s=generateKey();
                 writer.write(s + "\r\n");

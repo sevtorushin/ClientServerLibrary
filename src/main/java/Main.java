@@ -2,9 +2,11 @@ import check.KeyManager;
 import clients.AbstractClient;
 import clients.TransferClient;
 import entity.SIBParameter;
+import entity.WITSPackageTimeBased;
 import servers.*;
 import service.CacheReader;
 import service.SIBConverter;
+import service.WITSConverter;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -15,7 +17,7 @@ import java.util.*;
 
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         //Трансляция клиентом дампа SR из бинарного файла----------------------------------------
 //        try(TransferClient client = new TransferClient("localhost", 5000)) {
 //            SIBStreamEmulator emulator = new SIBStreamEmulator(new File("E:\\Documents\\Java_Projects\\DrillingDataReceiver\\src\\main\\resources\\dumps\\sibDump.bin"));
@@ -224,40 +226,31 @@ public class Main {
 //        }).start();
 //------------------------------------------------------------
 
-        AbstractReceiveSrv server = new LocalServer(6000, 2);
+        Properties props = new Properties();
+        props.load(new FileInputStream("src\\main\\resources\\props.properties"));
+        int port = Integer.parseInt(props.getProperty("server.local.port"));
+        int maxClient = Integer.parseInt(props.getProperty("server.local.maxNumberClient"));
+        String idClient1 = props.getProperty("client.client1.id");
+        String witsHost = props.getProperty("server.wits.host");
+        int witsPort = Integer.parseInt(props.getProperty("server.wits.port"));
+
+        AbstractReceiveSrv server = new LocalServer(port, maxClient);
         new Thread(server).start();
         server.startCaching();
 
-        SIBConverter converter = new SIBConverter();
+        SIBConverter sibConverter = new SIBConverter();
+        WITSConverter witsConverter = new WITSConverter();
 
-        TransferClient client = new TransferClient("127.0.0.1", 6000, "urg-u66-6603");
-        client.connectToServer();
-        client.startTransferFrom("127.0.0.1", 7000);
-
-//        new Thread(() -> {
-//            byte[] bytes;
-//            while (true) {
-//                bytes = server.receiveBytes("urg-u66-6603");
-//                System.out.println(new String(bytes));
-//            }
-//        }).start();
-//////
-//        Thread.sleep(30000);
-////
-//        new Thread(() -> {
-//            byte[] bytes;
-//            while (true) {
-//                bytes = server.receiveBytes("SibReceiver");
-//                System.out.println(converter.convert(bytes, SIBParameter.class));
-//            }
-//        }).start();
+        TransferClient witsClient = new TransferClient("localhost", port, idClient1);
+        witsClient.connectToServer();
+        witsClient.startTransferFrom(witsHost, witsPort);
 
         CacheReader reader = new CacheReader(server);
         reader.read(bytes -> {
             if (bytes[0] == -56)
-                System.out.println(converter.convert(bytes, SIBParameter.class));
+                System.out.println(sibConverter.convert(bytes, SIBParameter.class));
             if (bytes[0] == 38)
-                System.out.println(new String(bytes));
+                System.out.println(witsConverter.convert(bytes, WITSPackageTimeBased.class));
         });
     }
 }

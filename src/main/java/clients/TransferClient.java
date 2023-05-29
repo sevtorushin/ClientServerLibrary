@@ -19,7 +19,7 @@ public class TransferClient extends AbstractClient implements Transmittable, Rec
 
     public TransferClient(String host, int port, String id) {
         super(host, port, id,
-                new KeyManager("c:\\users\\public\\client_keys.txt"));
+                new KeyManager("c:\\users\\public\\client_keys.txt")); //todo вынести путь к ключам наружу
     }
 
     @Override

@@ -22,7 +22,7 @@ public class AbstractClient implements Serializable {
     private transient final KeyManager keyManager;
     private transient volatile boolean isWriteToCache = false;
     private transient volatile boolean isReadFromCache = false;
-    private static final Logger log = LogManager.getLogger(AbstractClient.class.getSimpleName());
+    private transient static final Logger log = LogManager.getLogger(AbstractClient.class.getSimpleName());
 
     public AbstractClient(String host, int port, String id, KeyManager keyManager) {
         this.host = host;
@@ -50,7 +50,9 @@ public class AbstractClient implements Serializable {
         try {
             keyManager.removeKey(sessionKey);
             this.socket = setSocket(host, port);
+            log.debug("Connect to server " + host + " " + " established");
             sessionKey = keyManager.getKey();
+            log.debug("Session key loaded");
             inpStrm = socket.getInputStream();
             outStrm = socket.getOutputStream();
 
@@ -58,6 +60,7 @@ public class AbstractClient implements Serializable {
             ObjectOutputStream oos = new ObjectOutputStream(baos);
             oos.writeObject(this);
             baos.writeTo(outStrm);
+            log.debug("Client identity sent to server");
             keyManager.removeKey(sessionKey);
             socket.getInputStream().read(message);
             log.info(new String(message));
