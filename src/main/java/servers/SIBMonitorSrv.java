@@ -22,7 +22,7 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
 
     @Override
     protected boolean validate(byte[] data) {
-        boolean contains = clientPool.stream()
+        boolean contains = socketPool.stream()
                 .anyMatch(client -> client.getInetAddress().toString().equals("/127.0.0.1"));
         if (contains) {
             log.info("Starting a second Sib Monitor client was rejected");

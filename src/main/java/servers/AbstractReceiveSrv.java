@@ -7,7 +7,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
@@ -73,7 +72,6 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
     public void startCaching() {
         new Thread(() -> {
             Thread.currentThread().setName("Start_Caching_Thread_" + Thread.currentThread().getId());
-            Set<Socket> uniqueClientContainer = new HashSet<>();
             while (true) {
                 try {
                     lock.lock();
@@ -90,10 +88,10 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
                             return;
                         }
                     }
-                    for (Socket clientSocket : clientPool) {
-                        if (uniqueClientContainer.add(clientSocket) && clientSocket != null) {
-                            log.debug("New unique client " + clientSocket.getInetAddress() + " is connected");
-                            writeToQueueFromSocket(clientSocket);
+                    for (AbstractClient client : cachePool.keySet()) {
+                        if (!client.isWriteToCache()) {
+                            log.debug("New unique client " + client.getHost() + " is connected");
+                            writeToQueueFromSocket(client);
                             setNewClientConnected(false);
                         }
                     }
@@ -105,12 +103,12 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
         }).start();
     }
 
-    private void writeToQueueFromSocket(Socket socket) {
+    private void writeToQueueFromSocket(AbstractClient client) {
         new Thread(() -> {
             Thread.currentThread().setName("Write_Data_Thread_" + Thread.currentThread().getId());
-            AbstractClient client = getSameMapSocket(socket);
             LinkedBlockingQueue<byte[][]> cache = cachePool.get(client);
-            try (InputStream is = socket.getInputStream()) {
+            client.setWriteToCache(true);
+            try (InputStream is = client.getSocket().getInputStream()) {
                 while (!isClosedInputStream(is)) { //todo метод блокирует поток и сервер не может быть остановлен при вызове мотода stopServer(), который прерывает поток методом interrupt()
                     LocalDateTime dateTime = LocalDateTime.now();
                     String s = dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
@@ -124,16 +122,17 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
                         return;
                     }
                 }
-                log.info("Client " + socket.getInetAddress() + " disconnected");
+                log.info("Client " + client.getHost() + " disconnected");
             } catch (IOException e) {
                 log.debug("Exception in writeToQueueFromSocket method", e);
-                log.info("May be SibReceiver app client " + socket.getInetAddress() + " was closed");
+                log.info("May be SibReceiver app client " + client.getHost() + " was closed");
             } finally {
                 try {
-                    socket.close();
-                    log.debug("Client socket " + socket.getInetAddress() + " is closed: " + socket.isClosed());
-                    clientPool.remove(socket);
-                    log.debug("Client " + socket.getInetAddress() + " removed from pool");
+                    client.getSocket().close();
+                    client.setWriteToCache(false);
+                    log.debug("Client socket " + client.getHost() + " is closed: " + client.getSocket().isClosed());
+                    clientPool.remove(client);
+                    log.debug("Client " + client.getHost() + " removed from pool");
                 } catch (IOException e) {
                     log.error(e);
                 }

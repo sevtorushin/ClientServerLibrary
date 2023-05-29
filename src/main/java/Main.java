@@ -3,6 +3,7 @@ import clients.AbstractClient;
 import clients.TransferClient;
 import entity.SIBParameter;
 import servers.*;
+import service.CacheReader;
 import service.SIBConverter;
 
 import java.io.*;
@@ -14,7 +15,7 @@ import java.util.*;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) {
         //Трансляция клиентом дампа SR из бинарного файла----------------------------------------
 //        try(TransferClient client = new TransferClient("localhost", 5000)) {
 //            SIBStreamEmulator emulator = new SIBStreamEmulator(new File("E:\\Documents\\Java_Projects\\DrillingDataReceiver\\src\\main\\resources\\dumps\\sibDump.bin"));
@@ -190,68 +191,48 @@ public class Main {
 //                e.printStackTrace();
 //            }
 //        }
-//--------------------------------------------------------------------------------------------
-//        while (true) {
-//            try (AbstractClient client = new WITSReceivingClient("192.168.0.102", 5110)) {
+
+// -----------------WITS server--------------------------------
+//        System.out.println("В аргументах ввести сначала порт, затем интервал");
+//        System.out.println("Server started on port " + args[0]);
+//        WITSRandomGenerator generator = new WITSRandomGenerator("01");
+//        ServerSocket serverSocket = new ServerSocket(Integer.parseInt(args[0]));
+//        new Thread(() -> {
+//            String s = generator.getWITSPackage();
+//            Socket socket;
+//            OutputStream os = null;
+//            while (true) {
+//                try {
+//                    socket = serverSocket.accept();
+//                    System.out.println("Client " + socket.getInetAddress() + " connected");
+//                    os = socket.getOutputStream();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
 //                while (true) {
-//                    byte[] bytes;
 //                    try {
-//                        bytes = client.receiveBytes();
-//                        System.out.println(new String(bytes));
-//                    } catch (DisconnectedException e) {
-//                        System.err.println(e.getMessage());
-//                        System.out.println("Try reconnect...");
+//                        os.write(s.getBytes());
+//                        System.out.println(s);
+//                        Thread.sleep(Integer.parseInt(args[1]));
+//                        s = generator.getWITSPackage();
+//                    } catch (InterruptedException | IOException e) {
+//                        System.out.println("\r\n" + "Client connection reset. Waiting new client...");
 //                        break;
 //                    }
 //                }
-//                try {
-//                    Thread.sleep(5000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//            } catch (Exception e) {
-//                    System.out.println("Try reconnect...");
-//            }
-//        }
-//        AbstractServer server = new MultifunctionalServer(6000, 2);
-//        new Thread(server).start();
-
-
-//        SIBConverter converter = new SIBConverter();
-//        WITSRandomGenerator generator = new WITSRandomGenerator("01");
-//        ServerSocket serverSocket = new ServerSocket(7000);
-//        new Thread(() -> {
-//            String s = generator.getWITSPackage();
-//            Socket socket = null;
-//            OutputStream os = null;
-//            try {
-//                socket = serverSocket.accept();
-//                System.out.println("Server started on port 7000");
-//                os = socket.getOutputStream();
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//            while (true) {
-//                try {
-//                    os.write(s.getBytes());
-//                    Thread.sleep(10000);
-//                    s = generator.getWITSPackage();
-//                } catch (InterruptedException | IOException e) {
-//                    e.printStackTrace();
-//                }
 //            }
 //        }).start();
-////
+//------------------------------------------------------------
+
         AbstractReceiveSrv server = new LocalServer(6000, 2);
         new Thread(server).start();
-//        server.startCaching();
-//
-//        Thread.sleep(30000);
-//
+        server.startCaching();
+
+        SIBConverter converter = new SIBConverter();
+
         TransferClient client = new TransferClient("127.0.0.1", 6000, "urg-u66-6603");
         client.connectToServer();
-        System.out.println();
-//        client.startTransferFrom("127.0.0.1", 7000);
+        client.startTransferFrom("127.0.0.1", 7000);
 
 //        new Thread(() -> {
 //            byte[] bytes;
@@ -260,9 +241,9 @@ public class Main {
 //                System.out.println(new String(bytes));
 //            }
 //        }).start();
-//
+//////
 //        Thread.sleep(30000);
-//
+////
 //        new Thread(() -> {
 //            byte[] bytes;
 //            while (true) {
@@ -271,15 +252,13 @@ public class Main {
 //            }
 //        }).start();
 
-//        ServerSocket serverSocket = new ServerSocket(6000);
-//        byte[] buf = new byte[8];
-//        Socket socket = serverSocket.accept();
-//        PushbackInputStream pbis = new PushbackInputStream(socket.getInputStream());
-//        byte b = (byte)pbis.read();
-//        System.out.println(b);
-//        pbis.unread(b);
-//        pbis.read(buf);
-//        System.out.println(Arrays.toString(buf));
+        CacheReader reader = new CacheReader(server);
+        reader.read(bytes -> {
+            if (bytes[0] == -56)
+                System.out.println(converter.convert(bytes, SIBParameter.class));
+            if (bytes[0] == 38)
+                System.out.println(new String(bytes));
+        });
     }
 }
 

@@ -44,6 +44,10 @@
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.0.2</version>
                 <configuration>
+<!--                    <includes>-->
+<!--                        <include>**/servers/WITSRandomGenerator.class</include>-->
+<!--                        <include>**/Main.class</include>-->
+<!--                    </includes>-->
                     <archive>
                         <manifest>
                             <mainClass>

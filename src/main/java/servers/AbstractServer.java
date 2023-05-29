@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -18,12 +19,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 public abstract class AbstractServer implements Runnable {
     protected final ServerSocket serverSocket;
     private final int port;
     private final int maxNumberOfClient;
-    protected volatile BlockingQueue<Socket> clientPool;
+    protected volatile BlockingQueue<Socket> socketPool;
+    protected volatile BlockingQueue<AbstractClient> clientPool;
     protected volatile Map<AbstractClient, LinkedBlockingQueue<byte[][]>> cachePool = new ConcurrentHashMap<>();
     protected final ReentrantLock lock = new ReentrantLock();
     protected final Condition condition = lock.newCondition();
@@ -37,10 +40,11 @@ public abstract class AbstractServer implements Runnable {
         this.port = port;
         this.serverSocket = getServerSocket(port);
         this.maxNumberOfClient = 1;
+        this.socketPool = new ArrayBlockingQueue<>(maxNumberOfClient);
         this.clientPool = new ArrayBlockingQueue<>(maxNumberOfClient);
         this.validator = validator;
         log.debug("Initialize: port: " + port + ", maxNumberOfClient: " + maxNumberOfClient +
-                ", number of active clients: " + clientPool.size() + ", number of unique clients: " +
+                ", number of active clients: " + socketPool.size() + ", number of unique clients: " +
                 cachePool.size() + ", is connect server: " + isServerConnected +
                 ", is new client connected: " + isNewClientConnected);
     }
@@ -49,10 +53,11 @@ public abstract class AbstractServer implements Runnable {
         this.port = port;
         this.serverSocket = getServerSocket(port);
         this.maxNumberOfClient = maxNumberOfClient;
+        this.socketPool = new ArrayBlockingQueue<>(maxNumberOfClient);
         this.clientPool = new ArrayBlockingQueue<>(maxNumberOfClient);
         this.validator = validator;
         log.debug("Initialize: port: " + port + ", maxNumberOfClient: " + maxNumberOfClient +
-                ", number of active clients: " + clientPool.size() + ", number of unique clients: " +
+                ", number of active clients: " + socketPool.size() + ", number of unique clients: " +
                 cachePool.size() + ", is connect server: " + isServerConnected +
                 ", is new client connected: " + isNewClientConnected);
     }
@@ -81,17 +86,18 @@ public abstract class AbstractServer implements Runnable {
                 AbstractClient client = getClient(data);
                 client.setPort(clientSocket.getPort());
                 client.setHost(clientSocket.getInetAddress().toString());
+                client.setSocket(clientSocket);
 
                 log.debug("Client " + clientSocket.getInetAddress() + " is valid");
                 try {
                     lock.lock();
                     log.debug("Thread takes lock");
-                    if (clientPool.offer(clientSocket)) {
-                        isNewClientConnected = true;
+                    if (clientPool.offer(client)) {
                         log.debug("Client " + clientSocket.getInetAddress() +
-                                " has been added to the queue. Number of active clients: " + clientPool.size());
+                                " has been added to the queue. Number of active clients: " + socketPool.size());
                         if (!addToMap(client))
                             clientSocket.close();
+                        isNewClientConnected = true;
                         log.info("Client " + clientSocket.getInetAddress() + " connected: " + isNewClientConnected);
                         clientSocket.getOutputStream().write("Your are connected successful".getBytes());
                     } else {
@@ -139,15 +145,11 @@ public abstract class AbstractServer implements Runnable {
         System.exit(1); //todo удалить после решения проблемы с read()
     }
 
-    public ArrayList<Socket> getClientPool() {
-        return new ArrayList<Socket>(clientPool);
-    }
-
     protected Validator getValidator() {
         return validator;
     }
 
-    public int cacheSize() {
+    public int cachePoolSize() {
         return cachePool.size();
     }
 
@@ -169,11 +171,15 @@ public abstract class AbstractServer implements Runnable {
                 .findFirst().orElse(null);
     }
 
-    public Set<AbstractClient> getActiveClients() {
+    public Set<AbstractClient> getCachedClients() {
         return cachePool.keySet();
     }
 
-    protected abstract boolean validate (byte[] data);
+    public BlockingQueue<AbstractClient> getActiveClients() {
+        return clientPool;
+    }
+
+    protected abstract boolean validate(byte[] data);
 
     protected abstract AbstractClient getClient(byte[] data);
 
@@ -181,6 +187,12 @@ public abstract class AbstractServer implements Runnable {
         if (!cachePool.containsKey(client)) {
             cachePool.put(client, new LinkedBlockingQueue<>(1_000_000)); //todo Размер кэша данных вынести в поле этого класса
             log.debug("Added unique client " + client.getHost() + " to cachePool");
+        } else {
+            cachePool.keySet()
+                    .forEach(cl -> {
+                        if (cl.getId().equals(client.getId()))
+                            cl.setSocket(client.getSocket());
+                    });
         }
         return true;
     }

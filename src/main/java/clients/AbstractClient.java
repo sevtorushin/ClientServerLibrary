@@ -20,6 +20,8 @@ public class AbstractClient implements Serializable {
     private transient OutputStream outStrm;
     private transient InputStream inpStrm;
     private transient final KeyManager keyManager;
+    private transient volatile boolean isWriteToCache = false;
+    private transient volatile boolean isReadFromCache = false;
     private static final Logger log = LogManager.getLogger(AbstractClient.class.getSimpleName());
 
     public AbstractClient(String host, int port, String id, KeyManager keyManager) {
@@ -36,7 +38,7 @@ public class AbstractClient implements Serializable {
         } catch (UnknownHostException e) {
             log.error("Unknown host " + e);
         } catch (ConnectException e) {
-            log.error("The server is not running on the specified endpoint\r\n" + e);
+            log.error("The server is not running on the specified endpoint " + port + "\r\n" + e);
         } catch (IOException e) {
             log.error(e);
         }
@@ -102,6 +104,26 @@ public class AbstractClient implements Serializable {
 
     public void setPort(int port) {
         this.port = port;
+    }
+
+    public void setSocket(Socket socket) {
+        this.socket = socket;
+    }
+
+    public boolean isWriteToCache() {
+        return isWriteToCache;
+    }
+
+    public void setWriteToCache(boolean writeToCache) {
+        isWriteToCache = writeToCache;
+    }
+
+    public boolean isReadFromCache() {
+        return isReadFromCache;
+    }
+
+    public void setReadFromCache(boolean readFromCache) {
+        isReadFromCache = readFromCache;
     }
 
     @Override

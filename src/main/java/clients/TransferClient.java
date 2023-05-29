@@ -1,6 +1,8 @@
 package clients;
 
 import check.KeyManager;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import servers.Receivable;
 
 import java.io.IOException;
@@ -13,10 +15,11 @@ import java.nio.ByteBuffer;
 public class TransferClient extends AbstractClient implements Transmittable, Receivable {
 
     private transient final ByteBuffer buffer = ByteBuffer.allocate(512);
+    private static final Logger log = LogManager.getLogger(TransferClient.class.getSimpleName());
 
     public TransferClient(String host, int port, String id) {
         super(host, port, id,
-               new KeyManager("c:\\users\\public\\client_keys.txt"));
+                new KeyManager("c:\\users\\public\\client_keys.txt"));
     }
 
     @Override
@@ -58,7 +61,7 @@ public class TransferClient extends AbstractClient implements Transmittable, Rec
                 try {
                     is.transferTo(os);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    e.printStackTrace(); //todo добавить логер. При отключении another сервера выбрасывается исключение
                 }
             }).start();
         } catch (IOException e) {
@@ -69,7 +72,10 @@ public class TransferClient extends AbstractClient implements Transmittable, Rec
     public void startTransferFrom(String anotherHost, int anotherPort) {
         try {
             Socket anotherSocket = setSocket(anotherHost, anotherPort);
-
+            if (anotherSocket == null) {
+                log.error("Connection to node " + anotherHost + " " + anotherPort + " not established");
+                return;
+            }
             InputStream is = anotherSocket.getInputStream();
             OutputStream os = getOutStrm();
             new Thread(() -> {
