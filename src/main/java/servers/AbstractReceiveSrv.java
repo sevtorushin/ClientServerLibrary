@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.*;
 
@@ -78,7 +79,7 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
                     while (!isNewClientConnected()) {
                         try {
                             condition.await(500, TimeUnit.MILLISECONDS);
-                            if (!isServerConnected()) {
+                            if (isServerStopped()) {
                                 log.debug("Thread is interrupted");
                                 return;
                             }
@@ -87,10 +88,11 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
                             return;
                         }
                     }
-                    for (AbstractClient client : cachePool.keySet()) {
+                    for (AbstractClient client : getCachedClients()) {
                         if (!client.isWriteToCache()) {
                             log.debug("New unique client " + client.getHost() + " is connected");
                             writeToQueueFromSocket(client);
+                            log.debug("Client " + client.getHost() + " sent for recording");
                             setNewClientConnected(false);
                         }
                     }
@@ -109,14 +111,15 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
             client.setWriteToCache(true);
             try (InputStream is = client.getSocket().getInputStream()) {
                 while (!isClosedInputStream(is)) { //todo метод блокирует поток и сервер не может быть остановлен при вызове мотода stopServer(), который прерывает поток методом interrupt()
+                    log.debug("Client package " + client.getHost() + " received");
                     LocalDateTime dateTime = LocalDateTime.now();
                     String s = dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-                    if (!cache.offer(new byte[][]{s.getBytes(), buffer})) {    //todo обработать условие когда offer отдает false (если очередь переполнена)
+                    if (!cache.offer(new byte[][]{s.getBytes(), Arrays.copyOf(buffer, buffer.length)})) {    //todo обработать условие когда offer отдает false (если очередь переполнена)
                         log.error("Local cache full");
                         continue;
                     }
-                    log.debug("Data added to socket cache " + client.getId());
-                    if (!isServerConnected()) {
+                    log.debug("Data added to client cache " + client.getId());
+                    if (isServerStopped()) {
                         log.debug("Thread is interrupted");
                         return;
                     }

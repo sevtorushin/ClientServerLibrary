@@ -15,6 +15,10 @@ public class WITSConverter implements Convertable<WITSPackage> {
 
     public WITSPackage convert(byte[] data, Class<? extends WITSPackage> clazz) {
         String WITSData = new String(data, StandardCharsets.UTF_8);
+        String witsRecordCode = clazz.getAnnotation(WITSPackageCode.class).code();
+        String packageIdentifier = new String(Arrays.copyOfRange(data, 4,6));
+        if (!packageIdentifier.equals(witsRecordCode))
+            return null;
         WITSPackage witsPackage = null;
         try {
             witsPackage = buildObject(WITSData, clazz);
@@ -30,7 +34,7 @@ public class WITSConverter implements Convertable<WITSPackage> {
         String witsRecordCode = clazz.getAnnotation(WITSPackageCode.class).code();
         Arrays.stream(WITSData.split("\r\n"))
                 .map(s -> s.contains("e-") ? witsRecordCode + s.substring(2, 4) + "0.0" : s)
-                .filter(s -> s.matches(witsRecordCode + "\\d{2}-?\\d*.?\\d*?"))
+                .filter(s -> s.matches(witsRecordCode + "\\d{2}-?\\d*.?\\d*?")) //todo конкатенировать выражение с WITSPackageCode.class).code() для фильтрации лишних пакетов
                 .forEach(s -> fieldValues[Integer.parseInt(s.substring(2, 4))] = s.substring(4));
         fieldValues[5] = LocalDate.parse((String) fieldValues[5], DateTimeFormatter.ofPattern("yyMMdd"));
         fieldValues[6] = LocalTime.parse((String) fieldValues[6], DateTimeFormatter.ofPattern("HHmmss"));

@@ -37,7 +37,7 @@ public class CacheReader {
                     } else clientCount = server.getActiveClients().size();
                     try {
                         condition.await(500, TimeUnit.MILLISECONDS);
-                        if (!server.isServerConnected())
+                        if (server.isServerStopped())
                             return;
                     } catch (InterruptedException e) {
                         e.printStackTrace();

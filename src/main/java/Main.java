@@ -1,3 +1,4 @@
+import annotations.WITSPackageCode;
 import check.KeyManager;
 import clients.AbstractClient;
 import clients.TransferClient;
@@ -13,11 +14,13 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         //Трансляция клиентом дампа SR из бинарного файла----------------------------------------
 //        try(TransferClient client = new TransferClient("localhost", 5000)) {
 //            SIBStreamEmulator emulator = new SIBStreamEmulator(new File("E:\\Documents\\Java_Projects\\DrillingDataReceiver\\src\\main\\resources\\dumps\\sibDump.bin"));
@@ -237,10 +240,12 @@ public class Main {
         AbstractReceiveSrv server = new LocalServer(port, maxClient);
         new Thread(server).start();
         server.startCaching();
-
+//
         SIBConverter sibConverter = new SIBConverter();
         WITSConverter witsConverter = new WITSConverter();
 
+        Thread.sleep(10000);
+//
         TransferClient witsClient = new TransferClient("localhost", port, idClient1);
         witsClient.connectToServer();
         witsClient.startTransferFrom(witsHost, witsPort);

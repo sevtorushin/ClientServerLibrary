@@ -12,7 +12,7 @@ public class SibValidator extends AbstractValidator {
 
     public SibValidator() {
         super(new KeyManager("c:\\users\\public\\server_keys.txt"));
-    }
+    } //todo вынести пути ключей наружу
 
     @Override
     public boolean authorize(byte[] data) {

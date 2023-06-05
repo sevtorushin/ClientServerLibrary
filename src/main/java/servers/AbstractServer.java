@@ -9,17 +9,13 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
 
 public abstract class AbstractServer implements Runnable {
     protected final ServerSocket serverSocket;
@@ -27,7 +23,7 @@ public abstract class AbstractServer implements Runnable {
     private final int maxNumberOfClient;
     protected volatile BlockingQueue<Socket> socketPool;
     protected volatile BlockingQueue<AbstractClient> clientPool;
-    protected volatile Map<AbstractClient, LinkedBlockingQueue<byte[][]>> cachePool = new ConcurrentHashMap<>();
+    public volatile Map<AbstractClient, LinkedBlockingQueue<byte[][]>> cachePool = new ConcurrentHashMap<>();
     protected final ReentrantLock lock = new ReentrantLock();
     protected final Condition condition = lock.newCondition();
     private final Validator validator;
@@ -73,7 +69,8 @@ public abstract class AbstractServer implements Runnable {
 
                 InputStream is = clientSocket.getInputStream();
                 byte[] data = new byte[512];
-                is.read(data);
+                if (is.read(data) != -1)
+                    log.debug("Client start package read");
 
                 if (!validate(data)) {
                     clientSocket.getOutputStream().write("Validation failed. Your reconnected".getBytes());
@@ -82,13 +79,12 @@ public abstract class AbstractServer implements Runnable {
                     log.info("Client connection dropped successful");
                     continue;
                 }
+                log.debug("Client " + clientSocket.getInetAddress() + " is valid");
 
                 AbstractClient client = getClient(data);
                 client.setPort(clientSocket.getPort());
                 client.setHost(clientSocket.getInetAddress().toString());
                 client.setSocket(clientSocket);
-
-                log.debug("Client " + clientSocket.getInetAddress() + " is valid");
                 try {
                     lock.lock();
                     log.debug("Thread takes lock");
@@ -153,8 +149,8 @@ public abstract class AbstractServer implements Runnable {
         return cachePool.size();
     }
 
-    public boolean isServerConnected() {
-        return isServerConnected;
+    public boolean isServerStopped() {
+        return !isServerConnected;
     }
 
     public boolean isNewClientConnected() {
@@ -163,12 +159,6 @@ public abstract class AbstractServer implements Runnable {
 
     public void setNewClientConnected(boolean newClientConnected) {
         isNewClientConnected = newClientConnected;
-    }
-
-    protected AbstractClient getSameMapSocket(Socket socket) {
-        return cachePool.keySet().stream()
-                .filter(client -> client.getHost().equals(socket.getInetAddress().toString().replace("/", "")))
-                .findFirst().orElse(null);
     }
 
     public Set<AbstractClient> getCachedClients() {
@@ -193,6 +183,7 @@ public abstract class AbstractServer implements Runnable {
                         if (cl.getId().equals(client.getId()))
                             cl.setSocket(client.getSocket());
                     });
+            log.debug("Client socket " + client.getHost() + " updated");
         }
         return true;
     }
