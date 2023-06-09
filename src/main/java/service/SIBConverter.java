@@ -2,8 +2,11 @@ package service;
 
 import entity.SIBParameter;
 import entity.SIBParameterType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class SIBConverter implements Convertable<SIBParameter> {
+    private static final Logger log = LogManager.getLogger(SIBConverter.class.getSimpleName());
 
     private String getName(int bytePerformance) {
         for (SIBParameterType type : SIBParameterType.values()) {
@@ -27,7 +30,7 @@ public class SIBConverter implements Convertable<SIBParameter> {
         try {
             parameter = clazz.newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
-            System.err.println("SIBObject creation error");
+            log.error("SIBObject creation error", e);
             e.printStackTrace();
         }
         String bytes1;

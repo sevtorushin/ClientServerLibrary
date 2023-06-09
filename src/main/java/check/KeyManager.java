@@ -1,5 +1,8 @@
 package check;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.*;
 import java.util.HashSet;
 import java.util.Random;
@@ -7,18 +10,18 @@ import java.util.Set;
 
 public class KeyManager {
     private final Set<String> publicKeys = new HashSet<>();
-    private final String keyPath;
-    private File file;
+    private final File keyFile;
     private int keyLength = 50;
     private int amountKey = 100;
+    private static final Logger log = LogManager.getLogger(KeyManager.class.getSimpleName());
 
     public KeyManager(String keyPath) {
-        this.keyPath = keyPath;
-        this.file = new File(keyPath);
+        this.keyFile = new File(keyPath);
         try {
-            file.createNewFile();
+            if (!keyFile.createNewFile())
+                log.debug("Key file already exists");
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Key file access error", e);
         }
         loadKeys(keyPath);
     }
@@ -26,35 +29,39 @@ public class KeyManager {
     public void loadKeys(String path) {
         try (BufferedReader reader = new BufferedReader(new FileReader(path))) {
             reader.lines().forEach(publicKeys::add);
+            log.debug("Keys from file loaded successfully");
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Key file IO error", e);
         }
     }
 
     public void removeKey(String key) {
         publicKeys.remove(key);
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+        log.debug("Specified key deleted successful");
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(keyFile))) {
             publicKeys.forEach(s -> {
                 try {
                     writer.write(s + "\r\n");
+                    log.debug("Key file updated successful");
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    log.error("Key file write error", e);
                 }
             });
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Key file IO error", e);
         }
     }
 
     public void createKeyFile() {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(keyFile))) {
             String s;
             for (int i = 0; i < amountKey; i++) {
                 s=generateKey();
                 writer.write(s + "\r\n");
             }
+            log.debug("Key file created successful");
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Key file IO error", e);;
         }
     }
 
@@ -68,7 +75,7 @@ public class KeyManager {
     }
 
     public String getKey() {
-        return publicKeys.stream().findFirst().orElseThrow(() -> new RuntimeException("Key limit exceeded"));
+        return publicKeys.stream().findFirst().orElseThrow(() -> new RuntimeException("The keys are over"));
     }
 
     public Set<String> getPublicKeys() {

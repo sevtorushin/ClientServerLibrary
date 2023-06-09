@@ -23,7 +23,7 @@ public abstract class AbstractServer implements Runnable {
     private final int maxNumberOfClient;
     protected volatile BlockingQueue<Socket> socketPool;
     protected volatile BlockingQueue<AbstractClient> clientPool;
-    public volatile Map<AbstractClient, LinkedBlockingQueue<byte[][]>> cachePool = new ConcurrentHashMap<>();
+    protected volatile Map<AbstractClient, LinkedBlockingQueue<byte[][]>> cachePool = new ConcurrentHashMap<>();
     protected final ReentrantLock lock = new ReentrantLock();
     protected final Condition condition = lock.newCondition();
     private final Validator validator;

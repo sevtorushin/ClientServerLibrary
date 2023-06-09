@@ -34,7 +34,6 @@ public abstract class AbstractValidator implements Validator {
         Set<String> keys = keyManager.getPublicKeys();
         if (keys.isEmpty()){
             keyManager.createKeyFile();
-            log.info("Keys file updated");
         }
             String key = client.getSessionKey();
             if (keys.contains(key)) {

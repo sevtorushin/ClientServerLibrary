@@ -5,21 +5,31 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import servers.Receivable;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
+import java.util.Properties;
 
 public class TransferClient extends AbstractClient implements Transmittable, Receivable {
-
+    private static final Properties props = new Properties();
     private transient final ByteBuffer buffer = ByteBuffer.allocate(512);
     private static final Logger log = LogManager.getLogger(TransferClient.class.getSimpleName());
 
-    public TransferClient(String host, int port, String id) {
+    {
+        try {
+            props.load(new FileInputStream("src\\main\\resources\\props.properties"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public TransferClient(String host, int port, String id, String keyFilePath) {
         super(host, port, id,
-                new KeyManager("c:\\users\\public\\client_keys.txt")); //todo вынести путь к ключам наружу
+                new KeyManager(keyFilePath));
     }
 
     @Override
@@ -29,15 +39,15 @@ public class TransferClient extends AbstractClient implements Transmittable, Rec
             getOutStrm().write(buffer.array());
             buffer.clear();
         } catch (SocketException e) {
-            System.out.println("Connection was reset. Reconnect...");
+            log.info("Connection was reset. Reconnect...", e);
             connectToServer();
             try {
                 Thread.sleep(5000);
             } catch (InterruptedException interruptedException) {
-                interruptedException.printStackTrace();
+                log.error("Waiting client reconnect aborted", interruptedException);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Error sending data from client", e);
         }
     }
 
@@ -46,7 +56,7 @@ public class TransferClient extends AbstractClient implements Transmittable, Rec
         try {
             getInpStrm().read(buffer.array());
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Client reading error", e);
         }
         return buffer.array();
     }
@@ -54,18 +64,17 @@ public class TransferClient extends AbstractClient implements Transmittable, Rec
     public void startTransferTo(String anotherHost, int anotherPort) {
         try {
             Socket anotherSocket = setSocket(anotherHost, anotherPort);
-
             InputStream is = getInpStrm();
             OutputStream os = anotherSocket.getOutputStream();
             new Thread(() -> {
                 try {
                     is.transferTo(os);
                 } catch (IOException e) {
-                    e.printStackTrace(); //todo добавить логер. При отключении another сервера выбрасывается исключение
+                    log.error("Error sending data from client to another host " + anotherHost, e);
                 }
             }).start();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("IO Exception sending data from client to another host " + anotherHost, e);
         }
     }
 
@@ -82,11 +91,11 @@ public class TransferClient extends AbstractClient implements Transmittable, Rec
                 try {
                     is.transferTo(os);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    log.error("Error sending data from client to another host " + anotherHost, e);
                 }
             }).start();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("IO Exception sending data from client to another host " + anotherHost, e);
         }
     }
 }

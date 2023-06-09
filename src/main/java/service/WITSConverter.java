@@ -3,6 +3,9 @@ package service;
 import entity.WITSPackage;
 import annotations.WITSPackageCode;
 import annotations.WITSRecordCode;
+import exceptions.BuildObjectException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -12,19 +15,19 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 
 public class WITSConverter implements Convertable<WITSPackage> {
+    private static final Logger log = LogManager.getLogger(WITSConverter.class.getSimpleName());
 
-    public WITSPackage convert(byte[] data, Class<? extends WITSPackage> clazz) {
+    public WITSPackage convert(byte[] data, Class<? extends WITSPackage> clazz) throws BuildObjectException {
         String WITSData = new String(data, StandardCharsets.UTF_8);
         String witsRecordCode = clazz.getAnnotation(WITSPackageCode.class).code();
         String packageIdentifier = new String(Arrays.copyOfRange(data, 4,6));
         if (!packageIdentifier.equals(witsRecordCode))
-            return null;
+            throw new BuildObjectException("Unknown WITS package");
         WITSPackage witsPackage = null;
         try {
             witsPackage = buildObject(WITSData, clazz);
         } catch (IllegalAccessException | InstantiationException e) {
-            System.err.println("WITSObject creation error");
-            e.printStackTrace();
+            log.error("WITSObject creation error", e);
         }
         return witsPackage;
     }
@@ -57,7 +60,7 @@ public class WITSConverter implements Convertable<WITSPackage> {
                     continue;
                 f.set(witsPackage, fieldValues[Integer.parseInt(code)]);
             } catch (IllegalAccessException e) {
-                e.printStackTrace();
+                log.error("Set field value error", e);
             }
         }
         return witsPackage;

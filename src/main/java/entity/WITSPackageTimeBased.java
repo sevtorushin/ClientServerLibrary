@@ -12,18 +12,19 @@ public class WITSPackageTimeBased extends WITSPackage {
     private LocalDate witsDate;
     @WITSRecordCode(code = "06")
     private LocalTime witsTime;
-    @WITSRecordCode(code = "12")
-    private double blockPosition;
     @WITSRecordCode(code = "08")
     private double bitDepth;
     @WITSRecordCode(code = "10")
     private double depth;
+    @WITSRecordCode(code = "12")
+    private double blockPosition;
     @WITSRecordCode(code = "14")
     private double hookLoad;
     @WITSRecordCode(code = "21")
     private double pressure;
 
-    public WITSPackageTimeBased(LocalDate witsDate, LocalTime witsTime, double blockPosition, double bitDepth, double depth, double hookLoad, double pressure) {
+    public WITSPackageTimeBased(LocalDate witsDate, LocalTime witsTime, double blockPosition, double bitDepth,
+                                double depth, double hookLoad, double pressure) {
         super(witsDate, witsTime);
         this.witsDate = witsDate;
         this.witsTime = witsTime;

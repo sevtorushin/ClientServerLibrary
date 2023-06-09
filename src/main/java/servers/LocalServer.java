@@ -11,8 +11,8 @@ import java.io.ObjectInputStream;
 import java.util.Arrays;
 
 public class LocalServer extends AbstractReceiveSrv {
-    private SIBMonitorSrv sibMonitorSrv = new SIBMonitorSrv(0);
-    private WITSServer witsServer = new WITSServer(0);
+    private final SIBMonitorSrv sibMonitorSrv = new SIBMonitorSrv(0);
+    private final WITSServer witsServer = new WITSServer(0);
     private static final Logger log = LogManager.getLogger(LocalServer.class.getSimpleName());
 
     public LocalServer(int port) {
@@ -33,7 +33,6 @@ public class LocalServer extends AbstractReceiveSrv {
             log.info("Unknown client connection attempt...");
             return false;
         }
-        log.debug("Client has been authorized");
         return true;
     }
 
@@ -49,6 +48,7 @@ public class LocalServer extends AbstractReceiveSrv {
         try {
             ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(data));
             client = (AbstractClient) ois.readObject();
+            log.debug("Initialize data from client is correct");
         } catch (IOException | ClassNotFoundException e) {
             log.error("Unknown client", e);
         }

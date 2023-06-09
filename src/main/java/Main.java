@@ -3,7 +3,10 @@ import check.KeyManager;
 import clients.AbstractClient;
 import clients.TransferClient;
 import entity.SIBParameter;
+import entity.WITSPackageDirectional;
+import entity.WITSPackageMwdEvaluation;
 import entity.WITSPackageTimeBased;
+import exceptions.BuildObjectException;
 import servers.*;
 import service.CacheReader;
 import service.SIBConverter;
@@ -236,17 +239,18 @@ public class Main {
         String idClient1 = props.getProperty("client.client1.id");
         String witsHost = props.getProperty("server.wits.host");
         int witsPort = Integer.parseInt(props.getProperty("server.wits.port"));
+        String clientKeyFilePath = props.getProperty("client.keyPath");
 
         AbstractReceiveSrv server = new LocalServer(port, maxClient);
         new Thread(server).start();
         server.startCaching();
-//
+
         SIBConverter sibConverter = new SIBConverter();
         WITSConverter witsConverter = new WITSConverter();
 
-        Thread.sleep(10000);
-//
-        TransferClient witsClient = new TransferClient("localhost", port, idClient1);
+//        Thread.sleep(10000);
+
+        TransferClient witsClient = new TransferClient("localhost", port, idClient1, clientKeyFilePath);
         witsClient.connectToServer();
         witsClient.startTransferFrom(witsHost, witsPort);
 
@@ -254,8 +258,21 @@ public class Main {
         reader.read(bytes -> {
             if (bytes[0] == -56)
                 System.out.println(sibConverter.convert(bytes, SIBParameter.class));
-            if (bytes[0] == 38)
-                System.out.println(witsConverter.convert(bytes, WITSPackageTimeBased.class));
+            if (bytes[0] == 38) {
+                try {
+                    System.out.println(witsConverter.convert(bytes, WITSPackageTimeBased.class));
+                } catch (BuildObjectException e) {
+                    try {
+                        System.out.println(witsConverter.convert(bytes, WITSPackageDirectional.class));
+                    } catch (BuildObjectException buildObjectException) {
+                        try {
+                            System.out.println(witsConverter.convert(bytes, WITSPackageMwdEvaluation.class));
+                        } catch (BuildObjectException objectException) {
+                            objectException.printStackTrace();
+                        }
+                    }
+                }
+            }
         });
     }
 }
