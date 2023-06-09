@@ -5,27 +5,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import servers.Receivable;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
-import java.util.Properties;
 
 public class TransferClient extends AbstractClient implements Transmittable, Receivable {
-    private static final Properties props = new Properties();
     private transient final ByteBuffer buffer = ByteBuffer.allocate(512);
     private static final Logger log = LogManager.getLogger(TransferClient.class.getSimpleName());
-
-    {
-        try {
-            props.load(new FileInputStream("src\\main\\resources\\props.properties"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     public TransferClient(String host, int port, String id, String keyFilePath) {
         super(host, port, id,

@@ -10,12 +10,16 @@ import java.util.Set;
 
 public class KeyManager {
     private final Set<String> publicKeys = new HashSet<>();
-    private final File keyFile;
+    private File keyFile;
     private int keyLength = 50;
     private int amountKey = 100;
     private static final Logger log = LogManager.getLogger(KeyManager.class.getSimpleName());
 
     public KeyManager(String keyPath) {
+        if (keyPath == null) {
+            log.debug("The path to the key file is not set");
+            return;
+        }
         this.keyFile = new File(keyPath);
         try {
             if (!keyFile.createNewFile())

@@ -89,6 +89,14 @@ public class AbstractClient implements Serializable {
         return inpStrm;
     }
 
+    public void setOutStrm(OutputStream outStrm) {
+        this.outStrm = outStrm;
+    }
+
+    public void setInpStrm(InputStream inpStrm) {
+        this.inpStrm = inpStrm;
+    }
+
     public void setId(String id) {
         this.id = id;
     }
@@ -99,6 +107,10 @@ public class AbstractClient implements Serializable {
 
     public String getHost() {
         return host.replace("/", "");
+    }
+
+    public int getPort() {
+        return port;
     }
 
     public void setSessionKey(String sessionKey) {

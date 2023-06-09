@@ -1,6 +1,7 @@
 import annotations.WITSPackageCode;
 import check.KeyManager;
 import clients.AbstractClient;
+import clients.LocalTransferClient;
 import clients.TransferClient;
 import entity.SIBParameter;
 import entity.WITSPackageDirectional;
@@ -250,7 +251,7 @@ public class Main {
 
 //        Thread.sleep(10000);
 
-        TransferClient witsClient = new TransferClient("localhost", port, idClient1, clientKeyFilePath);
+        TransferClient witsClient = new LocalTransferClient("localhost", port, idClient1);
         witsClient.connectToServer();
         witsClient.startTransferFrom(witsHost, witsPort);
 
