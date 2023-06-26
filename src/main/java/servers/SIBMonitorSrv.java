@@ -16,7 +16,6 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
     }
 
     public SIBMonitorSrv(int port, int maxNumberOfClient) {
-
         super(port, maxNumberOfClient, 22, new SibValidator());
     }
 

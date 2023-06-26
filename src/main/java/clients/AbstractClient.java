@@ -50,6 +50,8 @@ public class AbstractClient implements Serializable {
         try {
             keyManager.removeKey(sessionKey);
             this.socket = setSocket(host, port);
+            if (socket==null)
+                throw new RuntimeException("Connect to server " + host + " " + " is not established");
             log.debug("Connect to server " + host + " " + " established");
             sessionKey = keyManager.getKey();
             log.debug("Session key loaded");

@@ -11,9 +11,10 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class TransferClient extends AbstractClient implements Transmittable, Receivable {
-    private transient final ByteBuffer buffer = ByteBuffer.allocate(512);
+    private transient final ByteBuffer buffer = ByteBuffer.allocate(1024);
     private static final Logger log = LogManager.getLogger(TransferClient.class.getSimpleName());
 
     public TransferClient(String host, int port, String id, String keyFilePath) {
@@ -23,9 +24,16 @@ public class TransferClient extends AbstractClient implements Transmittable, Rec
 
     @Override
     public void sendBytes(byte[] bytes) {
-        buffer.put((getId() + "\r\n").getBytes()).put((getSessionKey() + "\r\n").getBytes()).put(bytes);
+        buffer.put((getId() + "\r\n").getBytes()).put((getSessionKey() + "\r\n\r\n").getBytes()).put(bytes);
+        int pos = buffer.position();
+        buffer.rewind();
+        byte[] pack = new byte[pos];
+        for (int i = 0; i < pos; i++) {
+            pack[i] = buffer.get();
+        }
         try {
-            getOutStrm().write(buffer.array());
+            getOutStrm().write(pack);
+//            System.out.println(Arrays.toString(pack)); //todo убрать
             buffer.clear();
         } catch (SocketException e) {
             log.info("Connection was reset. Reconnect...", e);

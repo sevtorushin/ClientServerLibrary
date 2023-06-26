@@ -1,6 +1,3 @@
-import annotations.WITSPackageCode;
-import check.KeyManager;
-import clients.AbstractClient;
 import clients.LocalTransferClient;
 import clients.TransferClient;
 import entity.SIBParameter;
@@ -16,10 +13,7 @@ import service.WITSConverter;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.net.URL;
 import java.util.*;
 
 public class Main {
@@ -201,11 +195,11 @@ public class Main {
 //            }
 //        }
 
-// -----------------WITS server--------------------------------
+//// -----------------WITS server--------------------------------
 //        System.out.println("В аргументах ввести сначала порт, затем интервал");
-//        System.out.println("Server started on port " + args[0]);
 //        WITSRandomGenerator generator = new WITSRandomGenerator("01");
 //        ServerSocket serverSocket = new ServerSocket(Integer.parseInt(args[0]));
+//        System.out.println("Server started on port " + args[0]);
 //        new Thread(() -> {
 //            String s = generator.getWITSPackage();
 //            Socket socket;
@@ -231,50 +225,6 @@ public class Main {
 //                }
 //            }
 //        }).start();
-//------------------------------------------------------------
-
-        Properties props = new Properties();
-        props.load(new FileInputStream("src\\main\\resources\\props.properties"));
-        int port = Integer.parseInt(props.getProperty("server.local.port"));
-        int maxClient = Integer.parseInt(props.getProperty("server.local.maxNumberClient"));
-        String idClient1 = props.getProperty("client.client1.id");
-        String witsHost = props.getProperty("server.wits.host");
-        int witsPort = Integer.parseInt(props.getProperty("server.wits.port"));
-        String clientKeyFilePath = props.getProperty("client.keyPath");
-
-        AbstractReceiveSrv server = new LocalServer(port, maxClient);
-        new Thread(server).start();
-        server.startCaching();
-
-        SIBConverter sibConverter = new SIBConverter();
-        WITSConverter witsConverter = new WITSConverter();
-
-//        Thread.sleep(10000);
-
-        TransferClient witsClient = new LocalTransferClient("localhost", port, idClient1);
-        witsClient.connectToServer();
-        witsClient.startTransferFrom(witsHost, witsPort);
-
-        CacheReader reader = new CacheReader(server);
-        reader.read(bytes -> {
-            if (bytes[0] == -56)
-                System.out.println(sibConverter.convert(bytes, SIBParameter.class));
-            if (bytes[0] == 38) {
-                try {
-                    System.out.println(witsConverter.convert(bytes, WITSPackageTimeBased.class));
-                } catch (BuildObjectException e) {
-                    try {
-                        System.out.println(witsConverter.convert(bytes, WITSPackageDirectional.class));
-                    } catch (BuildObjectException buildObjectException) {
-                        try {
-                            System.out.println(witsConverter.convert(bytes, WITSPackageMwdEvaluation.class));
-                        } catch (BuildObjectException objectException) {
-                            objectException.printStackTrace();
-                        }
-                    }
-                }
-            }
-        });
     }
 }
 

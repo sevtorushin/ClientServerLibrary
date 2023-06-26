@@ -51,7 +51,7 @@
                     <archive>
                         <manifest>
                             <mainClass>
-                                Main
+                                test.StartLocalServer
                             </mainClass>
                         </manifest>
                     </archive>

@@ -7,8 +7,8 @@ public class SibValidator extends AbstractValidator {
     private static final Logger log = LogManager.getLogger(SibValidator.class.getSimpleName());
 
     public SibValidator() {
-        super(new KeyManager("c:\\users\\public\\server_keys.txt"));
-    } //todo вынести пути ключей наружу
+        super(new KeyManager(null));
+    }
 
     @Override
     public boolean authorize(byte[] data) {

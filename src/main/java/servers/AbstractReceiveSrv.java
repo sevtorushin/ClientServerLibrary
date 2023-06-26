@@ -4,6 +4,7 @@ import check.AbstractValidator;
 import clients.AbstractClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import utils.ArrayUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -114,11 +115,13 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
                     log.debug("Client package " + client.getHost() + " received");
                     LocalDateTime dateTime = LocalDateTime.now();
                     String s = dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-                    if (!cache.offer(new byte[][]{s.getBytes(), Arrays.copyOf(buffer, buffer.length)})) {    //todo обработать условие когда offer отдает false (если очередь переполнена)
+                    byte[] b = ArrayUtils.arrayTrim(buffer);
+                    if (!cache.offer(new byte[][]{s.getBytes(), b})) {    //todo обработать условие когда offer отдает false (если очередь переполнена)
                         log.error("Local cache full");
                         continue;
                     }
                     log.debug("Data added to client cache " + client.getId());
+                    Arrays.fill(buffer, (byte) 0);
                     if (isServerStopped()) {
                         log.debug("Thread is interrupted");
                         return;

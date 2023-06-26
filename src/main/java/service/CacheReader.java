@@ -63,4 +63,28 @@ public class CacheReader {
             }
         }).start();
     }
+
+    public byte[] getHeaders(byte[] data) {
+        int index = 0;
+        for (int i = 0; i < data.length - 3; i++) {
+            if (data[i] == 13) {
+                if (data[i + 1] == 10 && data[i + 2] == 13 && data[i + 3] == 10) {
+                    index = i;
+                    break;
+                }
+            }
+        }
+        byte[] headers = new byte[index];
+        System.arraycopy(data, 0, headers, 0, headers.length);
+        return headers;
+    }
+
+    public byte[] getBody(byte[] data) {
+        byte[] headers = getHeaders(data);
+        if (headers.length == 0)
+            return data;
+        byte[] body = new byte[data.length - headers.length - 4];
+        System.arraycopy(data, data.length - body.length, body, 0, body.length);
+        return body;
+    }
 }
