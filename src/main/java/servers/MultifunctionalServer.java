@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 
 public class MultifunctionalServer extends AbstractReceiveSrv {
@@ -43,5 +44,15 @@ public class MultifunctionalServer extends AbstractReceiveSrv {
             log.error("Unknown client", e);
         }
         return client;
+    }
+
+    @Override
+    protected boolean isClosedInputStream(InputStream is) throws IOException {
+        byte[] buf = getBuffer();
+        if (is.read(buf) == -1 || buf[0] == 0) {
+            log.debug("InputStream closed");
+            return true;
+        }
+        return false;
     }
 }

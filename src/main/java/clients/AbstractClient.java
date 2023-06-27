@@ -36,7 +36,7 @@ public class AbstractClient implements Serializable {
         try {
             socket = new Socket(InetAddress.getByName(hostName), port);
         } catch (UnknownHostException e) {
-            log.error("Unknown host " + e);
+            log.error("Unknown host " + hostName + ": " + e);
         } catch (ConnectException e) {
             log.error("The server is not running on the specified endpoint " + port + "\r\n" + e);
         } catch (IOException e) {

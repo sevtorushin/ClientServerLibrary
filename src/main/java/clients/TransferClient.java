@@ -33,7 +33,6 @@ public class TransferClient extends AbstractClient implements Transmittable, Rec
         }
         try {
             getOutStrm().write(pack);
-//            System.out.println(Arrays.toString(pack)); //todo убрать
             buffer.clear();
         } catch (SocketException e) {
             log.info("Connection was reset. Reconnect...", e);

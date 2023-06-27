@@ -8,6 +8,9 @@ import utils.ArrayUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.sql.Connection;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -33,7 +36,7 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
     public byte[] receiveBytes(String source) {
         lock.lock();
         try {
-            while (cachePool.isEmpty()){
+            while (cachePool.isEmpty()) {
                 try {
                     condition.await();
                 } catch (InterruptedException e) {
@@ -130,7 +133,7 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
                 log.info("Client " + client.getHost() + " disconnected");
             } catch (IOException e) {
                 log.debug("Exception in writeToQueueFromSocket method", e);
-                log.info("May be SibReceiver app client " + client.getHost() + " was closed");
+                log.info("May be client " + client.getHost() + " was closed");
             } finally {
                 try {
                     client.getSocket().close();
@@ -154,6 +157,19 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
         }
         return false;
     }
+
+//    protected boolean isAliveClient(AbstractClient client) {
+//        boolean ping = false;
+//        try {
+//            InetAddress address = InetAddress.getByName(client.getHost());
+//            ping = address.isReachable(5000);
+//        } catch (UnknownHostException e) {
+//            e.printStackTrace();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        return ping;
+//    }
 
     protected byte[] getBuffer() {
         return buffer;
