@@ -12,7 +12,7 @@ public class WITSValidator extends AbstractValidator {
 
     @Override
     public boolean verify(byte[] data) {
-        return true;
+        return data[0] == 38 && data[1] == 38;
     }
 
     @Override

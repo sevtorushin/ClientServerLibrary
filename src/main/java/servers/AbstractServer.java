@@ -3,11 +3,13 @@ package servers;
 import check.AbstractValidator;
 import check.Validator;
 import clients.AbstractClient;
+import exceptions.ConnectClientException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import utils.Connection;
+import utils.ConnectionUtils;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -21,7 +23,6 @@ public abstract class AbstractServer implements Runnable {
     protected final ServerSocket serverSocket;
     private final int port;
     private final int maxNumberOfClient;
-    protected volatile BlockingQueue<Socket> socketPool;
     protected volatile BlockingQueue<AbstractClient> clientPool;
     protected volatile Map<AbstractClient, LinkedBlockingQueue<byte[][]>> cachePool = new ConcurrentHashMap<>();
     protected final ReentrantLock lock = new ReentrantLock();
@@ -36,11 +37,10 @@ public abstract class AbstractServer implements Runnable {
         this.port = port;
         this.serverSocket = getServerSocket(port);
         this.maxNumberOfClient = 1;
-        this.socketPool = new ArrayBlockingQueue<>(maxNumberOfClient);
         this.clientPool = new ArrayBlockingQueue<>(maxNumberOfClient);
         this.validator = validator;
         log.debug("Initialize: port: " + port + ", maxNumberOfClient: " + maxNumberOfClient +
-                ", number of active clients: " + socketPool.size() + ", number of unique clients: " +
+                ", number of active clients: " + clientPool.size() + ", number of unique clients: " +
                 cachePool.size() + ", is connect server: " + isServerConnected +
                 ", is new client connected: " + isNewClientConnected);
     }
@@ -49,11 +49,10 @@ public abstract class AbstractServer implements Runnable {
         this.port = port;
         this.serverSocket = getServerSocket(port);
         this.maxNumberOfClient = maxNumberOfClient;
-        this.socketPool = new ArrayBlockingQueue<>(maxNumberOfClient);
         this.clientPool = new ArrayBlockingQueue<>(maxNumberOfClient);
         this.validator = validator;
         log.debug("Initialize: port: " + port + ", maxNumberOfClient: " + maxNumberOfClient +
-                ", number of active clients: " + socketPool.size() + ", number of unique clients: " +
+                ", number of active clients: " + clientPool.size() + ", number of unique clients: " +
                 cachePool.size() + ", is connect server: " + isServerConnected +
                 ", is new client connected: " + isNewClientConnected);
     }
@@ -62,46 +61,51 @@ public abstract class AbstractServer implements Runnable {
     public void run() {
         Thread.currentThread().setName("Adding_New_Clients_Thread_" + Thread.currentThread().getId());
         log.info("Server started on port " + port);
+        byte[] tempBuffer = new byte[512];
+        Connection connection;
         while (isServerConnected) {
+            System.out.println(Thread.activeCount());
             try {
                 Socket clientSocket = serverSocket.accept();
-                log.debug("Client " + clientSocket.getInetAddress() + " accepted");
 
-                InputStream is = clientSocket.getInputStream();
-                byte[] data = new byte[512];
-                if (is.read(data) != -1)
-                    log.debug("Client start package read");
+                connection = new Connection();
+                connection.bind(clientSocket);
 
-                if (!validate(data)) {
-                    clientSocket.getOutputStream().write("Validation failed. Your reconnected".getBytes());
-                    log.debug("Client " + clientSocket.getInetAddress() + " invalid. Connection will be dropped");
-                    clientSocket.close();
+                log.debug("Client " + connection.getHost() + " accepted");
+
+                ConnectionUtils.readFromInputStreamToBuffer(connection.getInputStream(), tempBuffer);
+                log.debug("Client start package read");
+
+                if (!validate(tempBuffer)) {
+                    connection.getOutputStream().write("Validation failed. Your reconnected".getBytes());
+                    log.debug("Client " + connection.getHost() + " invalid. Connection will be dropped");
+                    connection.close();
                     log.info("Client connection dropped successful");
                     continue;
                 }
-                log.debug("Client " + clientSocket.getInetAddress() + " is valid");
+                log.debug("Client " + connection.getHost() + " is valid");
 
-                AbstractClient client = getClient(data);
-                client.setPort(clientSocket.getPort());
-                client.setHost(clientSocket.getInetAddress().toString());
-                client.setSocket(clientSocket);
+                AbstractClient client = getClient(tempBuffer);
+                client.setConnection(connection);
+                Arrays.fill(tempBuffer, (byte) 0);
+
                 try {
                     lock.lock();
                     log.debug("Thread takes lock");
                     if (clientPool.offer(client)) {
-                        log.debug("Client " + clientSocket.getInetAddress() +
-                                " has been added to the queue. Number of active clients: " + socketPool.size());
+                        log.debug("Client " + client.getHost() +
+                                " has been added to the queue. Number of active clients: " + clientPool.size());
                         if (!addToMap(client))
-                            clientSocket.close();
+                            client.getConnection().close();
                         isNewClientConnected = true;
-                        log.info("Client " + clientSocket.getInetAddress() + " connected: " + isNewClientConnected);
-                        clientSocket.getOutputStream().write("Your are connected successful".getBytes());
+                        log.info("Client " + client.getHost() + " connected: " + isNewClientConnected);
+                        client.getOutStrm().write("Your are connected successful".getBytes());
                     } else {
                         log.info("Client connection limit exceeded");
-                        clientSocket.getOutputStream().write(("Client connection limit exceeded. " +
+                        client.getOutStrm().write(("Client connection limit exceeded. " +
                                 "Your reconnected").getBytes());
-                        clientSocket.close();
-                        log.debug("Client socket is closed: " + clientSocket.isClosed());
+                        client.getConnection().close();
+                        log.debug("Client socket is closed: " + client.getConnection().isClosed());
                         continue;
                     }
                     condition.signal();
@@ -112,6 +116,8 @@ public abstract class AbstractServer implements Runnable {
             } catch (SocketTimeoutException e) {
                 log.trace("No new clients. Waiting for new clients");
             } catch (IOException e) {
+                log.error(e);
+            } catch (ConnectClientException e) {
                 log.error(e);
             }
         }
@@ -176,14 +182,20 @@ public abstract class AbstractServer implements Runnable {
     protected boolean addToMap(AbstractClient client) {
         if (!cachePool.containsKey(client)) {
             cachePool.put(client, new LinkedBlockingQueue<>(1_000_000)); //todo Размер кэша данных вынести в поле этого класса
-            log.debug("Added unique client " + client.getHost() + " to cachePool");
+            log.debug("Added unique client " + client.getConnection().getHost() + " to cachePool");
         } else {
             cachePool.keySet()
-                    .forEach(cl -> {
-                        if (cl.getId().equals(client.getId()))
-                            cl.setSocket(client.getSocket());
+                    .forEach(cachedClient -> {
+                        if (cachedClient.getId().equals(client.getId())) {
+                            try {
+                                cachedClient.getConnection().close();
+                                cachedClient.setConnection(client.getConnection());
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
                     });
-            log.debug("Client socket " + client.getHost() + " updated");
+            log.debug("Client socket " + client.getConnection().getHost() + " updated");
         }
         return true;
     }

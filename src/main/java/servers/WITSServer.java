@@ -33,5 +33,15 @@ public class WITSServer extends AbstractReceiveSrv {
         public WitsClient(String host, int port, String id) {
             super(host, port, id, null);
         }
+
+        @Override
+        protected void loadSessionKey() {
+
+        }
+
+        @Override
+        protected boolean authorize() {
+            return false;
+        }
     }
 }

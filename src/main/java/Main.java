@@ -9,16 +9,24 @@ import servers.*;
 import service.CacheReader;
 import service.SIBConverter;
 import service.WITSConverter;
+import test.simple.*;
+import utils.ArrayUtils;
 
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException, InterruptedException, BuildObjectException {
         //Трансляция клиентом дампа SR из бинарного файла----------------------------------------
 //        try(TransferClient client = new TransferClient("localhost", 5000)) {
 //            SIBStreamEmulator emulator = new SIBStreamEmulator(new File("E:\\Documents\\Java_Projects\\DrillingDataReceiver\\src\\main\\resources\\dumps\\sibDump.bin"));
@@ -225,6 +233,13 @@ public class Main {
 //                }
 //            }
 //        }).start();
+
+        ByteBuffer buffer = ByteBuffer.allocate(32);
+        SimpleServer server = new SimpleServer(6000);
+        while (true) {
+            server.getSocketPool().peek().read(buffer);
+            System.out.println(Arrays.toString(buffer.array()));
+        }
     }
 }
 

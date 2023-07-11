@@ -46,13 +46,13 @@ public class MultifunctionalServer extends AbstractReceiveSrv {
         return client;
     }
 
-    @Override
-    protected boolean isClosedInputStream(InputStream is) throws IOException {
-        byte[] buf = getBuffer();
-        if (is.read(buf) == -1 || buf[0] == 0) {
-            log.debug("InputStream closed");
-            return true;
-        }
-        return false;
-    }
+//    @Override
+//    protected boolean isClosedInputStream(InputStream is) throws IOException {
+//        byte[] buf = getBuffer();
+//        if (is.read(buf) == -1 || buf[0] == 0) {
+//            log.debug("InputStream closed");
+//            return true;
+//        }
+//        return false;
+//    }
 }

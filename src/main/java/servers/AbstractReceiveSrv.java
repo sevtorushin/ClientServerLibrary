@@ -2,9 +2,11 @@ package servers;
 
 import check.AbstractValidator;
 import clients.AbstractClient;
+import exceptions.ConnectClientException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import utils.ArrayUtils;
+import utils.ConnectionUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,7 +20,8 @@ import java.util.Set;
 import java.util.concurrent.*;
 
 public abstract class AbstractReceiveSrv extends AbstractServer implements Receivable {
-    private final byte[] buffer;
+    private byte[] buffer;
+    private static final int TIMEOUT_RESET_CLIENT = 30_000;
     private static final Logger log = LogManager.getLogger(AbstractReceiveSrv.class.getSimpleName());
 
     public AbstractReceiveSrv(int port, int DEFAULT_BUFFER_SIZE, AbstractValidator validator) {
@@ -51,7 +54,7 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
         Object[] idClients = clients.stream()
                 .filter(cl -> cl.getId().equals(source)).toArray();
         Object[] ipClients = clients.stream()
-                .filter(cl -> cl.getHost().equals(source)).toArray();
+                .filter(cl -> cl.getConnection().getHost().equals(source)).toArray();
         if (idClients.length == 1) {
             return receiveBytes((AbstractClient) idClients[0]);
         } else if (ipClients.length == 1)
@@ -94,9 +97,9 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
                     }
                     for (AbstractClient client : getCachedClients()) {
                         if (!client.isWriteToCache()) {
-                            log.debug("New unique client " + client.getHost() + " is connected");
+                            log.debug("New unique client " + client.getConnection().getHost() + " is connected");
                             writeToQueueFromSocket(client);
-                            log.debug("Client " + client.getHost() + " sent for recording");
+                            log.debug("Client " + client.getConnection().getHost() + " sent for recording");
                             setNewClientConnected(false);
                         }
                     }
@@ -112,10 +115,12 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
         new Thread(() -> {
             Thread.currentThread().setName("Write_Data_Thread_" + Thread.currentThread().getId());
             LinkedBlockingQueue<byte[][]> cache = cachePool.get(client);
+            byte[] buffer = new byte[512];
             client.setWriteToCache(true);
-            try (InputStream is = client.getSocket().getInputStream()) {
-                while (!isClosedInputStream(is)) { //todo метод блокирует поток и сервер не может быть остановлен при вызове мотода stopServer(), который прерывает поток методом interrupt()
-                    log.debug("Client package " + client.getHost() + " received");
+            try {
+                readFromClientToBuffer(client, buffer);
+                while (getValidator().verify(buffer)) {
+                    log.debug("Client package " + client.getConnection().getHost() + " received");
                     LocalDateTime dateTime = LocalDateTime.now();
                     String s = dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
                     byte[] b = ArrayUtils.arrayTrim(buffer);
@@ -125,22 +130,27 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
                     }
                     log.debug("Data added to client cache " + client.getId());
                     Arrays.fill(buffer, (byte) 0);
+                    readFromClientToBuffer(client, buffer);
                     if (isServerStopped()) {
                         log.debug("Thread is interrupted");
                         return;
                     }
                 }
-                log.info("Client " + client.getHost() + " disconnected");
-            } catch (IOException e) {
-                log.debug("Exception in writeToQueueFromSocket method", e);
-                log.info("May be client " + client.getHost() + " was closed");
+            } catch (ConnectClientException e) {
+                if (e.getMessage().contains("unreachable"))
+                    log.info("Connection with  " + client.getConnection().getHost() + " was lost");
             } finally {
                 try {
-                    client.getSocket().close();
+                    log.info("Client " + client.getConnection().getHost() + " disconnected");
+                    if (client.getInpStrm() != null)
+                        client.getInpStrm().close();
+                    if (client.getConnection().getSocket() != null && !client.getConnection().getSocket().isClosed())
+                        client.getConnection().getSocket().close();
+                    log.debug("Client socket " + client.getConnection().getHost() +
+                            " is closed: " + client.getConnection().getSocket().isClosed());
                     client.setWriteToCache(false);
-                    log.debug("Client socket " + client.getHost() + " is closed: " + client.getSocket().isClosed());
                     clientPool.remove(client);
-                    log.debug("Client " + client.getHost() + " removed from pool");
+                    log.debug("Client " + client.getConnection().getHost() + " removed from pool");
                 } catch (IOException e) {
                     log.error(e);
                 }
@@ -148,28 +158,28 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
         }).start();
     }
 
-    protected boolean isClosedInputStream(InputStream is) throws IOException {
-        try {
-            if (is.read(buffer) == -1)
-                return true;
-        } catch (IOException e) {
-            log.debug(e);
-        }
-        return false;
-    }
-
-//    protected boolean isAliveClient(AbstractClient client) {
-//        boolean ping = false;
+//    protected boolean isClosedInputStream(InputStream is) throws IOException {
 //        try {
-//            InetAddress address = InetAddress.getByName(client.getHost());
-//            ping = address.isReachable(5000);
-//        } catch (UnknownHostException e) {
-//            e.printStackTrace();
+//            if (is.read(buffer) == -1)
+//                return true;
 //        } catch (IOException e) {
-//            e.printStackTrace();
+//            log.debug(e);
 //        }
-//        return ping;
+//        return false;
 //    }
+
+    protected static void readFromClientToBuffer(AbstractClient client, byte[] buffer) throws ConnectClientException {
+        try {
+            boolean isReached = ConnectionUtils.isReachedHost(client.getHost());
+            if (isReached) {
+                ConnectionUtils.readFromInputStreamToBuffer(client.getInpStrm(), buffer, TIMEOUT_RESET_CLIENT);
+            } else
+                throw new ConnectClientException("Client host " + client.getConnection().getHost() + " is unreachable");
+        } catch (Exception e) {
+            if (e.getMessage().contains("Connection reset"))
+                throw new ConnectClientException("Client " + client.getConnection().getHost() + " disconnected");
+        }
+    }
 
     protected byte[] getBuffer() {
         return buffer;

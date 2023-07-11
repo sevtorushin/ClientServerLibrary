@@ -24,6 +24,7 @@ public class CacheReader {
 
     public void read(Consumer<? super byte[]> processor) {
         new Thread(() -> {
+            Thread.currentThread().setName("Waiting_New_Client_For_Cache_Reading_" + Thread.currentThread().getId());
             Set<AbstractClient> clients;
             int clientCount = 0;
             while (true) {
@@ -49,6 +50,7 @@ public class CacheReader {
                 for (AbstractClient client : clients) {
                     if (!client.isReadFromCache()) {
                         new Thread(() -> {
+                            Thread.currentThread().setName("Read_Cache_Data_" + Thread.currentThread().getId());
                             client.setReadFromCache(true);
                             byte[] bytes;
                             while (client.isWriteToCache()) {

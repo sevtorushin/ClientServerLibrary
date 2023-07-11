@@ -1,13 +1,16 @@
 package check;
 
 public class LocalValidator extends AbstractValidator {
+    private SibValidator sibValidator = new SibValidator();
+    private WITSValidator witsValidator = new WITSValidator();
+
     public LocalValidator() {
         super(null);
     }
 
     @Override
     public boolean verify(byte[] data) {
-        return true;
+        return sibValidator.verify(data) || witsValidator.verify(data);
     }
 
     @Override

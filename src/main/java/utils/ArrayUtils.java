@@ -1,5 +1,7 @@
 package utils;
 
+import java.nio.ByteBuffer;
+
 public class ArrayUtils {
 
     public static byte[] arrayTrim(byte[] array) {
@@ -13,5 +15,16 @@ public class ArrayUtils {
         byte[] result = new byte[size];
         System.arraycopy(array, 0, result, 0, size);
         return result;
+    }
+
+    public static byte[] arrayTrim(ByteBuffer buffer) {
+        int size = buffer.position();
+        byte[] result = new byte[size];
+        System.arraycopy(buffer.array(), 0, result, 0, size);
+        return result;
+    }
+
+    public static boolean isEmpty(byte[] array){
+        return arrayTrim(array).length == 0;
     }
 }

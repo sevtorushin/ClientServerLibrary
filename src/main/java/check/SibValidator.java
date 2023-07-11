@@ -27,6 +27,6 @@ public class SibValidator extends AbstractValidator {
 
     @Override
     public boolean verify(byte[] data) {
-        return true;
+        return data[0] == -56;
     }
 }

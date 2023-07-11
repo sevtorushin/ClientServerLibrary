@@ -5,9 +5,6 @@ import clients.AbstractClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 public class SIBMonitorSrv extends AbstractReceiveSrv {
     private static final Logger log = LogManager.getLogger(SIBMonitorSrv.class.getSimpleName());
 
@@ -21,8 +18,7 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
 
     @Override
     protected boolean validate(byte[] data) {
-        boolean contains = socketPool.stream()
-                .anyMatch(client -> client.getInetAddress().toString().equals("/127.0.0.1"));
+        boolean contains = clientPool.stream().anyMatch(client -> client.getHost().equals("127.0.0.1"));
         if (contains) {
             log.info("Starting a second Sib Monitor client was rejected");
             return false;
@@ -31,19 +27,9 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
     }
 
     @Override
-    protected boolean isClosedInputStream(InputStream is) throws IOException {
-        byte[] buf = getBuffer();
-        if (is.read(buf) == -1 || buf[0] == 4) {
-            log.debug("InputStream closed");
-            return true;
-        }
-        return false;
-    }
-
-    @Override
     protected AbstractClient getClient(byte[] data) {
         String clientId = "SibReceiver";
-        AbstractClient client = new SibClient(null, 0, clientId);
+        AbstractClient client = new SibClient("", 0, clientId);
         client.setSessionKey("constant");
         return client;
     }
@@ -52,6 +38,16 @@ public class SIBMonitorSrv extends AbstractReceiveSrv {
 
         public SibClient(String host, int port, String id) {
             super(host, port, id, null);
+        }
+
+        @Override
+        protected void loadSessionKey() {
+
+        }
+
+        @Override
+        protected boolean authorize() {
+            return false;
         }
     }
 }

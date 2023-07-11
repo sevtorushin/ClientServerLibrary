@@ -4,6 +4,7 @@ import entity.SIBParameter;
 import entity.SIBParameterType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import utils.ArrayUtils;
 
 public class SIBConverter implements Convertable<SIBParameter> {
     private static final Logger log = LogManager.getLogger(SIBConverter.class.getSimpleName());
@@ -26,6 +27,8 @@ public class SIBConverter implements Convertable<SIBParameter> {
 
     @Override
     public SIBParameter convert(byte[] bytes, Class<? extends SIBParameter> clazz) {
+        if (bytes.length < 2)
+            return null;
         SIBParameter parameter = null;
         try {
             parameter = clazz.newInstance();
@@ -55,5 +58,15 @@ public class SIBConverter implements Convertable<SIBParameter> {
         parameter.setQuality(bytes[4]);
 
         return parameter;
+    }
+
+    private SIBParameter metaPackage(byte[] bytes) {
+        byte[] data = ArrayUtils.arrayTrim(bytes);
+        if (data.length == 1 && data[0] == -56)
+            return new SIBParameter("Start Parameter", -999.25, 100);
+        if (data.length == 1 && data[0] == 4) {
+            return new SIBParameter("End Parameter", -999.25, 100);
+        }
+        return null;
     }
 }
