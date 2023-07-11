@@ -233,13 +233,6 @@ public class Main {
 //                }
 //            }
 //        }).start();
-
-        ByteBuffer buffer = ByteBuffer.allocate(32);
-        SimpleServer server = new SimpleServer(6000);
-        while (true) {
-            server.getSocketPool().peek().read(buffer);
-            System.out.println(Arrays.toString(buffer.array()));
-        }
     }
 }
 
