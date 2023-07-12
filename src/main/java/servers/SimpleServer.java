@@ -6,7 +6,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -15,7 +14,7 @@ public class SimpleServer implements Runnable {
     private InetSocketAddress endpoint;
     private final Selector selector;
     private int DEFAULT_SOCKET_POOL_SIZE = 1;
-    private final ArrayBlockingQueue<SocketChannel> socketPool;
+    private final LinkedBlockingQueue<SocketChannel> socketPool;
     private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();
     private boolean stopped;
 
@@ -24,7 +23,7 @@ public class SimpleServer implements Runnable {
         this.serverSocketChannel = ServerSocketChannel.open();
         this.serverSocketChannel.bind(endpoint);
         this.serverSocketChannel.configureBlocking(false);
-        this.socketPool = new ArrayBlockingQueue<>(DEFAULT_SOCKET_POOL_SIZE, true);
+        this.socketPool = new LinkedBlockingQueue<>(DEFAULT_SOCKET_POOL_SIZE);
         this.selector = Selector.open();
     }
 
@@ -34,7 +33,7 @@ public class SimpleServer implements Runnable {
         this.serverSocketChannel = ServerSocketChannel.open();
         this.serverSocketChannel.bind(endpoint);
         this.serverSocketChannel.configureBlocking(false);
-        this.socketPool = new ArrayBlockingQueue<>(DEFAULT_SOCKET_POOL_SIZE, true);
+        this.socketPool = new LinkedBlockingQueue<>(DEFAULT_SOCKET_POOL_SIZE);
         this.selector = Selector.open();
     }
 
@@ -57,7 +56,6 @@ public class SimpleServer implements Runnable {
                 e.printStackTrace();
             }
         }
-        System.out.println("Server stopped");
     }
 
 
@@ -74,6 +72,7 @@ public class SimpleServer implements Runnable {
             } else {
                 socketChannel.configureBlocking(false);
                 socketChannel.register(getSelector(), SelectionKey.OP_READ);
+                System.out.println("Client connected");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -120,6 +119,7 @@ public class SimpleServer implements Runnable {
             stopped = true;
             rejectAllSockets();
             serverSocketChannel.close();
+            System.out.println("Server stopped");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -153,14 +153,14 @@ public class SimpleServer implements Runnable {
     @Override
     public String toString() {
         if (DEFAULT_SOCKET_POOL_SIZE > 1)
-            return "SimpleMultiThreadServer{" +
+            return "SimpleServer{" +
                     "host=" + getEndpoint().getHostString() + "; " +
                     "port=" + getEndpoint().getPort() + "; " +
                     "MultiThread Server" + "; " +
                     "Max clients=" + DEFAULT_SOCKET_POOL_SIZE +
                     '}';
         else
-            return "SimpleMultiThreadServer{" +
+            return "SimpleServer{" +
                     "host=" + getEndpoint().getHostString() + "; " +
                     "port=" + getEndpoint().getPort() + "; " +
                     "SingleThread Server" +

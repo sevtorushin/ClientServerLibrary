@@ -15,7 +15,7 @@ public abstract class Control {
         if (mapExpression.get("targObj").equals("-s"))
             return new SimpleServerControl();
         else if (mapExpression.get("targObj").equals("-c"))
-            return new ClientControl();
+            return new SimpleClientControl();
         else throw new IllegalArgumentException("Illegal key expression");
     }
 

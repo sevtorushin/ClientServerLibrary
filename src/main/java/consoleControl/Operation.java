@@ -15,8 +15,6 @@ public class Operation implements Runnable {
     private List<SimpleServer> servers = new LinkedList<>();
     private List<SimpleClient> clients = new LinkedList<>();
     private Scanner scanner = new Scanner(System.in);
-    private SimpleServer server;
-    private BlockingQueue<SocketChannel> socketPool;
     private String expression;
     private CommandCollection command;
 
@@ -30,7 +28,7 @@ public class Operation implements Runnable {
                 control = Control.getControlInstance(expression);
                 if (control instanceof SimpleServerControl)
                     control.setEntity(servers);
-                else if (control instanceof ClientControl)
+                else if (control instanceof SimpleClientControl)
                     control.setEntity(clients);
                 else throw new UnknownFormatConversionException("Unknown object format for cast to Control");
                 command = control.getCommand();

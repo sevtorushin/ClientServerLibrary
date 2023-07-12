@@ -9,7 +9,7 @@ import java.rmi.NoSuchObjectException;
 import java.util.Arrays;
 import java.util.List;
 
-public class ClientControl extends Control {
+public class SimpleClientControl extends Control {
     private List<SimpleClient> clients;
     private SimpleClient client;
 
@@ -66,10 +66,11 @@ public class ClientControl extends Control {
                     try {
                         client.read(buffer);
                         byte[] bytes = ArrayUtils.arrayTrim(buffer);
-                        System.out.println(Arrays.toString(bytes));
-                        client.getCache().put(bytes);
+//                        System.out.println(Arrays.toString(bytes));
+                        client.saveToCache(bytes);
+                        System.out.println("Cache size = " + client.getCache().size());
                         buffer.clear();
-                    } catch (IOException | InterruptedException e) {
+                    } catch (IOException e) {
                         client.disconnect();
                         clients.remove(client);
                         break;

@@ -44,6 +44,7 @@ public class SimpleClient {
         try {
             channel.close();
             isConnected = false;
+            System.out.println("Client disconnected");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -53,6 +54,14 @@ public class SimpleClient {
         try {
             channel.write(srcBuf);
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void saveToCache(byte[] data) {
+        try {
+            cache.put(data);
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
