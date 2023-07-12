@@ -4,6 +4,7 @@ import java.rmi.NoSuchObjectException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public abstract class Control {
     private static CommandCollection command;
@@ -70,5 +71,5 @@ public abstract class Control {
         return mapExpression;
     }
 
-    public abstract void setEntity(List<?> entity);
+    public abstract void setEntity(LinkedBlockingQueue<?> entity);
 }

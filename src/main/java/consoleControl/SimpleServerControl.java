@@ -11,9 +11,10 @@ import java.nio.channels.SocketChannel;
 import java.rmi.NoSuchObjectException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class SimpleServerControl extends Control {
-    private List<SimpleServer> servers;
+    private LinkedBlockingQueue<SimpleServer> servers;
     private SimpleServer server;
 
     @Override
@@ -178,7 +179,7 @@ public class SimpleServerControl extends Control {
 
     @Override
     @SuppressWarnings("unchecked")
-    public void setEntity(List<?> servers) {
-        this.servers = (List<SimpleServer>) servers;
+    public void setEntity(LinkedBlockingQueue<?> servers) {
+        this.servers = (LinkedBlockingQueue<SimpleServer>) servers;
     }
 }

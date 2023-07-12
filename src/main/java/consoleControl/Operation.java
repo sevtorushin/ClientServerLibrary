@@ -9,11 +9,12 @@ import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class Operation implements Runnable {
     static ExecutorService service = Executors.newCachedThreadPool();
-    private List<SimpleServer> servers = new LinkedList<>();
-    private List<SimpleClient> clients = new LinkedList<>();
+    private LinkedBlockingQueue<SimpleServer> servers = new LinkedBlockingQueue<>();
+    private LinkedBlockingQueue<SimpleClient> clients = new LinkedBlockingQueue<>();
     private Scanner scanner = new Scanner(System.in);
     private String expression;
     private CommandCollection command;
@@ -83,11 +84,11 @@ public class Operation implements Runnable {
         }
     }
 
-    public List<SimpleServer> getServers() {
+    public LinkedBlockingQueue<SimpleServer> getServers() {
         return servers;
     }
 
-    public List<SimpleClient> getClients() {
+    public LinkedBlockingQueue<SimpleClient> getClients() {
         return clients;
     }
 }

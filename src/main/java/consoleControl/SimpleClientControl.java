@@ -8,9 +8,10 @@ import java.nio.ByteBuffer;
 import java.rmi.NoSuchObjectException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class SimpleClientControl extends Control {
-    private List<SimpleClient> clients;
+    private LinkedBlockingQueue<SimpleClient> clients;
     private SimpleClient client;
 
     @Override
@@ -109,7 +110,7 @@ public class SimpleClientControl extends Control {
 
     @Override
     @SuppressWarnings("unchecked")
-    public void setEntity(List<?> clients) {
-        this.clients = (List<SimpleClient>) clients;
+    public void setEntity(LinkedBlockingQueue<?> clients) {
+        this.clients = (LinkedBlockingQueue<SimpleClient>) clients;
     }
 }
