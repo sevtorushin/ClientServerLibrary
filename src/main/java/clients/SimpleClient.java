@@ -1,14 +1,17 @@
 package clients;
 
+import entity.Cached;
+
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class SimpleClient {
+public class SimpleClient implements Cached {
     private SocketChannel channel;
     private final InetSocketAddress endpoint;
     private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();
@@ -58,6 +61,7 @@ public class SimpleClient {
         }
     }
 
+    @Override
     public void saveToCache(byte[] data) {
         try {
             cache.put(data);
@@ -70,16 +74,51 @@ public class SimpleClient {
         channel.read(dstBuf);
     }
 
+    @Override
+    public byte[] readAllCache() {
+        byte[] data;
+        if (cache.size() == 0)
+            data = new byte[0];
+        else if (cache.size() == 1) {
+            try {
+                data = cache.take();
+            } catch (InterruptedException e) {
+                data = new byte[0];
+            }
+        } else
+            data = cache.stream().reduce((bytes, bytes2) -> {
+                byte[] b = Arrays.copyOf(bytes, bytes.length + bytes2.length);
+                System.arraycopy(bytes2, 0, b, bytes.length, bytes2.length);
+                return b;
+            }).orElse(new byte[0]);
+        cache.clear();
+        return data;
+    }
+
+    @Override
+    public byte[] readElementCache() {
+        byte[] data;
+        if (cache.size() == 0)
+            data = new byte[0];
+        else
+            try {
+                data = cache.take();
+            } catch (InterruptedException e) {
+                data = new byte[0];
+            }
+        return data;
+    }
+
     public InetSocketAddress getEndpoint() {
         return endpoint;
     }
 
-    public LinkedBlockingQueue<byte[]> getCache() {
+    LinkedBlockingQueue<byte[]> getCache() {
         return cache;
     }
 
-    public boolean isConnected() {
-        return isConnected;
+    public boolean isStopped() {
+        return !isConnected;
     }
 
     @Override

@@ -2,34 +2,34 @@ package entity;
 
 import java.io.Serializable;
 
-public class SIBParameter implements Serializable {
-    private String parameterName;
-    private double parameterData;
+public class SIBParameter implements Package, Serializable {
+    private String name;
+    private double value;
     private int quality;
 
-    public SIBParameter(String parameterName, double parameterData, int quality) {
-        this.parameterName = parameterName;
-        this.parameterData = parameterData;
+    public SIBParameter(String name, double value, int quality) {
+        this.name = name;
+        this.value = value;
         this.quality = quality;
     }
 
     public SIBParameter() {
     }
 
-    public String getParameterName() {
-        return parameterName;
+    public String getName() {
+        return name;
     }
 
-    public void setParameterName(String parameterName) {
-        this.parameterName = parameterName;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public double getParameterData() {
-        return parameterData;
+    public double getValue() {
+        return value;
     }
 
-    public void setParameterData(double parameterData) {
-        this.parameterData = parameterData;
+    public void setValue(double value) {
+        this.value = value;
     }
 
     public int getQuality() {
@@ -43,8 +43,8 @@ public class SIBParameter implements Serializable {
     @Override
     public String toString() {
         return "SIBParameter{" +
-                "parameterName='" + parameterName + '\'' +
-                ", parameterData=" + parameterData +
+                "name='" + name + '\'' +
+                ", value=" + value +
                 ", quality=" + quality +
                 '}';
     }

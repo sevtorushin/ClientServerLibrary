@@ -6,8 +6,6 @@ import utils.ArrayUtils;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.rmi.NoSuchObjectException;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class SimpleClientControl extends Control {
@@ -31,12 +29,13 @@ public class SimpleClientControl extends Control {
             clients.forEach(SimpleClient::disconnect);
             clients.clear();
             return clients;
-        }
-        int port = (int) getMapExpression().get("port");
+        } else {
+            int port = (int) getMapExpression().get("port");
             client = getClient(port);
             client.disconnect();
             clients.remove(client);
-        return client;
+            return client;
+        }
     }
 
     @Override
@@ -63,13 +62,13 @@ public class SimpleClientControl extends Control {
                     return;
                 }
                 ByteBuffer buffer = ByteBuffer.allocate(512);
-                while (client.isConnected()) {
+                while (!client.isStopped()) {
                     try {
                         client.read(buffer);
                         byte[] bytes = ArrayUtils.arrayTrim(buffer);
 //                        System.out.println(Arrays.toString(bytes));
                         client.saveToCache(bytes);
-                        System.out.println("Cache size = " + client.getCache().size());
+//                        System.out.println("Cache size = " + client.getCache().size());
                         buffer.clear();
                     } catch (IOException e) {
                         client.disconnect();

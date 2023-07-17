@@ -1,15 +1,18 @@
 package servers;
 
+import entity.Cached;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class SimpleServer implements Runnable {
+public class SimpleServer implements Runnable, Cached {
     private final ServerSocketChannel serverSocketChannel;
     private InetSocketAddress endpoint;
     private final Selector selector;
@@ -98,14 +101,6 @@ public class SimpleServer implements Runnable {
         return socketPool.isEmpty();
     }
 
-    public void saveToCache(byte[] data) {
-        try {
-            cache.put(data);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
     private boolean checkAliveSocket() {
         return socketPool.removeIf(socketChannel -> !socketChannel.isConnected());
     }
@@ -125,18 +120,61 @@ public class SimpleServer implements Runnable {
         }
     }
 
+    @Override
+    public void saveToCache(byte[] data) {
+        try {
+            cache.put(data);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public byte[] readAllCache() {
+        byte[] data;
+        if (cache.size() == 0)
+            data = new byte[0];
+        else if (cache.size() == 1) {
+            try {
+                data = cache.take();
+            } catch (InterruptedException e) {
+                data = new byte[0];
+            }
+        } else
+            data = cache.stream().reduce((bytes, bytes2) -> {
+                byte[] b = Arrays.copyOf(bytes, bytes.length + bytes2.length);
+                System.arraycopy(bytes2, 0, b, bytes.length, bytes2.length);
+                return b;
+            }).orElse(new byte[0]);
+        cache.clear();
+        return data;
+    }
+
+    @Override
+    public byte[] readElementCache() {
+        byte[] data;
+        if (cache.size() == 0)
+            data = new byte[0];
+        else
+            try {
+                data = cache.take();
+            } catch (InterruptedException e) {
+                data = new byte[0];
+            }
+        return data;
+    }
+
+    LinkedBlockingQueue<byte[]> getCache() {
+        return cache;
+    }
+
     public int getSocketAmount() {
         return socketPool.size();
     }
 
-    public LinkedBlockingQueue<byte[]> getCache() {
-        return cache;
+    public int getCacheSize() {
+        return cache.size();
     }
-
-//    public void restartServer(){
-//        rejectAllSockets();
-//        restart = true;
-//    }
 
     public boolean isStopped() {
         return stopped;

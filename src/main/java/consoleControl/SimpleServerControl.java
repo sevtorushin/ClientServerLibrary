@@ -10,7 +10,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.rmi.NoSuchObjectException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class SimpleServerControl extends Control {
@@ -86,7 +85,7 @@ public class SimpleServerControl extends Control {
                 }
                 ByteBuffer buffer = ByteBuffer.allocate(512);
                 try {
-                    while (!server.isStopped() /*&& server.getSocketAmount() != 0*/) {
+                    while (!server.isStopped()) {
                         int readyChannels = server.getSelector().selectNow();
                         if (readyChannels == 0) {
                             Thread.sleep(100);
@@ -98,7 +97,7 @@ public class SimpleServerControl extends Control {
                             iterator.remove();
                             if (server.isStopped())
                                 return;
-                            if (key.isReadable()) { //todo при остановке сервера поток зависает в этом месте
+                            if (key.isReadable()) {
                                 SocketChannel sc = (SocketChannel) key.channel();
                                 try {
                                     if (sc.read(buffer) == -1) {
@@ -112,7 +111,7 @@ public class SimpleServerControl extends Control {
                                 byte[] bytes = ArrayUtils.arrayTrim(buffer);
                                 server.saveToCache(bytes);
 //                                System.out.println(Arrays.toString(bytes));
-                                System.out.println("Cache size = " + server.getCache().size());
+//                                System.out.println("Cache size = " + server.getCacheSize());
                                 buffer.clear();
                             }
                         }

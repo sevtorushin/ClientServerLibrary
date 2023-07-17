@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-public class WITSPackage implements Serializable {
+public abstract class WITSPackage implements Package, Serializable {
     private LocalDate witsDate;
     private LocalTime witsTime;
 

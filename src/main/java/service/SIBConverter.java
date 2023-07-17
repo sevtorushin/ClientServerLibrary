@@ -2,6 +2,7 @@ package service;
 
 import entity.SIBParameter;
 import entity.SIBParameterType;
+import exceptions.BuildObjectException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import utils.ArrayUtils;
@@ -26,10 +27,13 @@ public class SIBConverter implements Convertable<SIBParameter> {
     }
 
     @Override
-    public SIBParameter convert(byte[] bytes, Class<? extends SIBParameter> clazz) {
-        if (bytes.length < 2)
-            return null;
-        SIBParameter parameter = null;
+    public SIBParameter convert(byte[] bytes, Class<? extends SIBParameter> clazz) throws BuildObjectException {
+        SIBParameter parameter = metaPackage(bytes);
+        if (parameter != null) {
+            return parameter;
+        }
+        if (bytes[0]!=-56)
+            throw new BuildObjectException("Unknown SIB package");
         try {
             parameter = clazz.newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
@@ -53,8 +57,8 @@ public class SIBConverter implements Convertable<SIBParameter> {
                 || name.equals(SIBParameterType.INCD.getName()))
             data /= 10.0;
 
-        parameter.setParameterName(name);
-        parameter.setParameterData(data);
+        parameter.setName(name);
+        parameter.setValue(data);
         parameter.setQuality(bytes[4]);
 
         return parameter;
@@ -62,7 +66,7 @@ public class SIBConverter implements Convertable<SIBParameter> {
 
     private SIBParameter metaPackage(byte[] bytes) {
         byte[] data = ArrayUtils.arrayTrim(bytes);
-        if (data.length == 1 && data[0] == -56)
+        if (data.length == 1 && data[0] == -56 || data.length > 1 && data[0] == -56 && data[1] == -56)
             return new SIBParameter("Start Parameter", -999.25, 100);
         if (data.length == 1 && data[0] == 4) {
             return new SIBParameter("End Parameter", -999.25, 100);
