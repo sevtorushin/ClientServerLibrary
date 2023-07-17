@@ -1,20 +1,23 @@
 package servers;
 
 import entity.Cached;
+import utils.ArrayUtils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class SimpleServer implements Runnable, Cached {
     private final ServerSocketChannel serverSocketChannel;
-    private InetSocketAddress endpoint;
+    private final InetSocketAddress endpoint;
     private final Selector selector;
     private int DEFAULT_SOCKET_POOL_SIZE = 1;
     private final LinkedBlockingQueue<SocketChannel> socketPool;
@@ -56,7 +59,7 @@ public class SimpleServer implements Runnable, Cached {
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                System.err.println(e.getMessage());
             }
         }
     }
@@ -117,6 +120,46 @@ public class SimpleServer implements Runnable, Cached {
             System.out.println("Server stopped");
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void startCaching() {
+        ByteBuffer buffer = ByteBuffer.allocate(512); //todo вынести емкость в константу
+        try {
+            while (!stopped) {
+                int readyChannels = selector.selectNow();
+                if (readyChannels == 0) {
+                    Thread.sleep(100);
+                    continue;
+                }
+                Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
+                while (iterator.hasNext()) {
+                    SelectionKey key = iterator.next();
+                    iterator.remove();
+                    if (stopped)
+                        return;
+                    if (key.isReadable()) {
+                        SocketChannel sc = (SocketChannel) key.channel();
+                        try {
+                            if (sc.read(buffer) == -1) {
+                                rejectSocket(sc);
+                                break;
+                            }
+                        } catch (IOException e) {
+                            rejectSocket(sc);
+                            break;
+                        }
+                        byte[] bytes = ArrayUtils.arrayTrim(buffer);
+                        saveToCache(bytes);
+//                                System.out.println(Arrays.toString(bytes));
+                                System.out.println("Cache size = " + getCacheSize());
+                        buffer.clear();
+                    }
+                }
+            }
+            System.out.println("Reading completed");
+        } catch (IOException | InterruptedException e) {
+            System.err.println("Caching interrupted\n" + e.getMessage());
         }
     }
 

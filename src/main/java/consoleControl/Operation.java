@@ -1,6 +1,7 @@
 package consoleControl;
 
 import clients.SimpleClient;
+import entity.Cached;
 import servers.SimpleServer;
 
 import java.rmi.NoSuchObjectException;
@@ -11,66 +12,59 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Operation implements Runnable {
     static ExecutorService service = Executors.newCachedThreadPool();
-    private LinkedBlockingQueue<SimpleServer> servers = new LinkedBlockingQueue<>();
-    private LinkedBlockingQueue<SimpleClient> clients = new LinkedBlockingQueue<>();
-    private Scanner scanner = new Scanner(System.in);
-    private String expression;
-    private CommandCollection command;
+    private final LinkedBlockingQueue<SimpleServer> serverPool;
+    private final LinkedBlockingQueue<SimpleClient> clientPool;
+    private final Scanner scanner;
+
+    public Operation() {
+        SimpleServerController serverController = SimpleServerController.getInstance();
+        SimpleClientController clientController = SimpleClientController.getInstance();
+        serverPool = serverController.getServers();
+        clientPool = clientController.getClients();
+        scanner = new Scanner(System.in);
+    }
 
     @Override
     public void run() {
-        Control control;
-        Object ob;
+        Controller controller;
+        String expression;
+        CommandCollection command;
         while (true) {
             try {
                 expression = scanner.nextLine();
-                control = Control.getControlInstance(expression);
-                if (control instanceof SimpleServerControl)
-                    control.setEntity(servers);
-                else if (control instanceof SimpleClientControl)
-                    control.setEntity(clients);
-                else throw new UnknownFormatConversionException("Unknown object format for cast to Control");
-                command = control.getCommand();
+                controller = Controller.getControlInstance(expression);
+                command = controller.getCommand();
                 switch (command) {
                     case START:
-                        ob = control.start();
-                        if (ob instanceof SimpleServer)
-                            service.submit((SimpleServer) ob);
+                        Cached entity = controller.create();
+                        service.submit((Runnable) entity);
                         break;
 
                     case STOP:
                         try {
-                            control.stop();
+                            controller.stop();
                         } catch (NoSuchObjectException e) {
                             System.err.println(e.getMessage());
                         }
                         break;
 
                     case GET:
-                        try {
-                            ob = control.get();
-                        } catch (NoSuchObjectException e) {
-                            System.err.println(e.getMessage());
-                            continue;
-                        }
-                        if (ob instanceof Collection) {
-                            if (((Collection<?>) ob).isEmpty())
-                                System.out.println("none");
-                            else ((Collection<?>) ob).forEach(System.out::println);
-                        } else System.out.println(ob);
+                        List<?> result = controller.get();
+                        if (result.isEmpty())
+                            System.out.println("none");
+                        else result.forEach(System.out::println);
                         break;
 //
                     case REMOVE:
                         try {
-                            control.remove();
+                            controller.remove();
                         } catch (NoSuchObjectException e) {
                             System.err.println(e.getMessage());
                         }
                         break;
 //
                     case READ:
-                        Runnable task = (Runnable) control.read();
-                        service.submit(task);
+                        service.submit(controller::read);
                         break;
 
                     case EXIT:
@@ -83,10 +77,10 @@ public class Operation implements Runnable {
     }
 
     public LinkedBlockingQueue<SimpleServer> getServers() {
-        return servers;
+        return serverPool;
     }
 
     public LinkedBlockingQueue<SimpleClient> getClients() {
-        return clients;
+        return clientPool;
     }
 }

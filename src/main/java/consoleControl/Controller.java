@@ -1,21 +1,25 @@
 package consoleControl;
 
+import entity.Cached;
+
+import java.io.IOException;
 import java.rmi.NoSuchObjectException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public abstract class Control {
+public abstract class Controller {
     private static CommandCollection command;
     private static final Map<String, Object> mapExpression = new HashMap<>();
 
-    public static Control getControlInstance(String expression) {
+    public static Controller getControlInstance(String expression) {
         fillMap();
         setMapExpression(expression);
         if (mapExpression.get("targObj").equals("-s"))
-            return new SimpleServerControl();
+            return SimpleServerController.getInstance();
         else if (mapExpression.get("targObj").equals("-c"))
-            return new SimpleClientControl();
+            return SimpleClientController.getInstance();
         else throw new IllegalArgumentException("Illegal key expression");
     }
 
@@ -52,15 +56,15 @@ public abstract class Control {
         mapExpression.put("option", null);
     }
 
-    public abstract Object start();
+    public abstract Cached create() throws IOException;
 
-    public abstract Object stop() throws NoSuchObjectException;
+    public abstract List<Cached> stop() throws NoSuchObjectException;
 
-    public abstract Object get() throws NoSuchObjectException;
+    public abstract List<?> get() throws NoSuchObjectException;
 
-    public abstract Object remove() throws NoSuchObjectException;
+    public abstract List<?> remove() throws NoSuchObjectException;
 
-    public abstract Object read();
+    public abstract void read();
 
     public CommandCollection getCommand() {
         return command;

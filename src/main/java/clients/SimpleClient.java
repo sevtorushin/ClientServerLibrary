@@ -1,6 +1,7 @@
 package clients;
 
 import entity.Cached;
+import utils.ArrayUtils;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -11,7 +12,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class SimpleClient implements Cached {
+public class SimpleClient implements Runnable, Cached {
     private SocketChannel channel;
     private final InetSocketAddress endpoint;
     private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();
@@ -25,7 +26,16 @@ public class SimpleClient implements Cached {
         this.endpoint = new InetSocketAddress(host, port);
     }
 
-    public void connect() {
+    @Override
+    public void run() {
+        try {
+            connect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void connect() throws IOException {
         try {
             channel = SocketChannel.open();
 //            channel.configureBlocking(false);
@@ -40,6 +50,7 @@ public class SimpleClient implements Cached {
         } catch (IOException e) {
             if (e.getMessage().equals("Connection refused: connect"))
                 System.err.println("The server is not running on the specified endpoint " + channel.socket().getPort());
+            else throw new IOException();
         }
     }
 
@@ -59,6 +70,19 @@ public class SimpleClient implements Cached {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void startCaching() throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(512); //todo вынести емкость в константу
+        while (isConnected) {
+            read(buffer);
+            byte[] bytes = ArrayUtils.arrayTrim(buffer);
+            saveToCache(bytes);
+                        System.out.println(Arrays.toString(bytes));
+                        System.out.println("Cache size = " + getCacheSize());
+            buffer.clear();
+        }
+        System.out.println("Reading completed");
     }
 
     @Override
@@ -115,6 +139,10 @@ public class SimpleClient implements Cached {
 
     LinkedBlockingQueue<byte[]> getCache() {
         return cache;
+    }
+
+    public int getCacheSize() {
+        return cache.size();
     }
 
     public boolean isStopped() {
