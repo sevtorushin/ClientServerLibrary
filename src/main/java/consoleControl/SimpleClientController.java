@@ -2,10 +2,8 @@ package consoleControl;
 
 import clients.SimpleClient;
 import entity.Cached;
-import utils.ArrayUtils;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.rmi.NoSuchObjectException;
 import java.util.*;
@@ -15,7 +13,6 @@ public class SimpleClientController extends Controller {
     private static SimpleClientController controller;
     private LinkedBlockingQueue<SimpleClient> clients = new LinkedBlockingQueue<>();
     private final Map<String, Object> mapExpression = new HashMap<>();
-//    private SimpleClient client;
 
 
     private SimpleClientController() {
@@ -115,11 +112,5 @@ public class SimpleClientController extends Controller {
 
     public LinkedBlockingQueue<SimpleClient> getClients() {
         return clients;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void setEntity(LinkedBlockingQueue<?> clients) {
-        this.clients = (LinkedBlockingQueue<SimpleClient>) clients;
     }
 }

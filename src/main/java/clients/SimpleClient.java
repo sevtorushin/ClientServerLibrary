@@ -10,6 +10,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class SimpleClient implements Runnable, Cached {
@@ -137,16 +138,26 @@ public class SimpleClient implements Runnable, Cached {
         return endpoint;
     }
 
-    LinkedBlockingQueue<byte[]> getCache() {
-        return cache;
-    }
-
     public int getCacheSize() {
         return cache.size();
     }
 
     public boolean isStopped() {
         return !isConnected;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SimpleClient client = (SimpleClient) o;
+        return Objects.equals(endpoint, client.endpoint) &&
+                Objects.equals(channel.socket().getLocalPort(), client.channel.socket().getLocalPort());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(endpoint, channel.socket().getLocalPort());
     }
 
     @Override

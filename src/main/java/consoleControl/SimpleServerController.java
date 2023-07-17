@@ -1,25 +1,19 @@
 package consoleControl;
 
-import clients.SimpleClient;
 import entity.Cached;
 import servers.SimpleServer;
-import utils.ArrayUtils;
 
 import java.io.IOException;
 import java.net.BindException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.rmi.NoSuchObjectException;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.stream.Collectors;
 
 public class SimpleServerController extends Controller {
     private static SimpleServerController controller;
     private LinkedBlockingQueue<SimpleServer> servers = new LinkedBlockingQueue<>();
     private final Map<String, Object> mapExpression = new HashMap<>();
-//    private SimpleServer server;
 
 
     private SimpleServerController() {
@@ -161,11 +155,5 @@ public class SimpleServerController extends Controller {
 
     public LinkedBlockingQueue<SimpleServer> getServers() {
         return servers;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void setEntity(LinkedBlockingQueue<?> servers) {
-        this.servers = (LinkedBlockingQueue<SimpleServer>) servers;
     }
 }

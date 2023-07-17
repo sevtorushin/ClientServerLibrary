@@ -12,6 +12,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -77,7 +78,7 @@ public class SimpleServer implements Runnable, Cached {
                 return false;
             } else {
                 socketChannel.configureBlocking(false);
-                socketChannel.register(getSelector(), SelectionKey.OP_READ);
+                socketChannel.register(selector, SelectionKey.OP_READ);
                 System.out.println("Client connected");
             }
         } catch (IOException e) {
@@ -207,10 +208,6 @@ public class SimpleServer implements Runnable, Cached {
         return data;
     }
 
-    LinkedBlockingQueue<byte[]> getCache() {
-        return cache;
-    }
-
     public int getSocketAmount() {
         return socketPool.size();
     }
@@ -223,12 +220,21 @@ public class SimpleServer implements Runnable, Cached {
         return stopped;
     }
 
-    public Selector getSelector() {
-        return selector;
-    }
-
     public InetSocketAddress getEndpoint() {
         return endpoint;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SimpleServer server = (SimpleServer) o;
+        return Objects.equals(endpoint, server.endpoint);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(endpoint);
     }
 
     @Override
