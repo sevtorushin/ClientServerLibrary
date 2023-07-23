@@ -1,23 +1,16 @@
 package consoleControl;
 
-import entity.Cached;
 import servers.SimpleServer;
 
 import java.io.IOException;
-import java.net.BindException;
 import java.nio.channels.SocketChannel;
 import java.rmi.NoSuchObjectException;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class SimpleServerController extends Controller {
+public class SimpleServerController {
     private static SimpleServerController controller;
-    private LinkedBlockingQueue<SimpleServer> servers = new LinkedBlockingQueue<>();
-    private final Map<String, Object> mapExpression = new HashMap<>();
-
-
-    private SimpleServerController() {
-    }
+    private final LinkedBlockingQueue<SimpleServer> servers = new LinkedBlockingQueue<>();
 
     public static SimpleServerController getInstance() {
         if (controller == null) {
@@ -26,101 +19,6 @@ public class SimpleServerController extends Controller {
         } else return controller;
     }
 
-    @Override
-    public Cached create() throws IOException {
-        SimpleServer server = null;
-        int maxClients = 1;
-        if (getMapExpression().get("option") != null &&
-                !getMapExpression().get("option").equals("all".toLowerCase())) {
-            maxClients = Integer.parseInt((String) getMapExpression().get("option"));
-        }
-        int port = (int) getMapExpression().get("port");
-        try {
-            server = new SimpleServer(port, maxClients);
-            servers.add(server);
-        } catch (BindException e) {
-            System.err.println("Port is not available. Please use another port");
-        }
-        return server;
-    }
-
-    @Override
-    public List<Cached> stop() throws NoSuchObjectException {
-        SimpleServer server;
-        if (getMapExpression().get("option") != null &&
-                getMapExpression().get("option").equals("all".toLowerCase())) {
-            servers.forEach(SimpleServer::stopServer);
-            servers.clear();
-            return new ArrayList<>(servers);
-        } else if (getMapExpression().get("option") == null &&
-                getMapExpression().get("port") != null) {
-            int port = (int) getMapExpression().get("port");
-            server = getServer(port);
-            server.stopServer();
-            servers.remove(server);
-            return Collections.singletonList(server);
-        } else throw new IllegalArgumentException("Wrong arguments expression");
-    }
-
-    @Override
-    public List<SocketChannel> remove() throws NoSuchObjectException {
-        SimpleServer server;
-        if (getMapExpression().get("option") != null &&
-                getMapExpression().get("option").equals("all".toLowerCase()) &&
-                getMapExpression().get("port") != null) {
-            int serverPort = (int) getMapExpression().get("port");
-            server = getServer(serverPort);
-            List<SocketChannel> clients = new ArrayList<>(server.getSocketPool());
-            server.rejectAllSockets();
-            return clients;
-        } else if (getMapExpression().get("option") != null &&
-                !getMapExpression().get("option").equals("all".toLowerCase()) &&
-                getMapExpression().get("port") != null) {
-            int serverPort = (int) getMapExpression().get("port");
-            int clientPort = Integer.parseInt((String) getMapExpression().get("option"));
-            server = getServer(serverPort);
-            removeClient(server, clientPort);
-            return new ArrayList<>(server.getSocketPool());
-        } else throw new NoSuchObjectException("Data is missing");
-    }
-
-    @Override
-    public void read() {
-        SimpleServer server;
-        if (getMapExpression().get("option") != null &&
-                getMapExpression().get("option").equals("all".toLowerCase()) &&
-                getMapExpression().get("port") != null) {
-            int port = (int) getMapExpression().get("port");
-            try {
-                server = getServer(port);
-            } catch (NoSuchObjectException e) {
-                System.err.println(e.getMessage());
-                return;
-            }
-            server.startCaching();
-        } else System.err.println("Wrong input expression");
-    }
-
-    @Override
-    public List<?> get() throws NoSuchObjectException {
-        SimpleServer server;
-        if (getMapExpression().get("option") != null &&
-                getMapExpression().get("option").equals("all".toLowerCase()) &&
-                getMapExpression().get("port") == null)
-            return new ArrayList<>(servers);
-        else if (getMapExpression().get("option") != null &&
-                getMapExpression().get("option").equals("all".toLowerCase()) &&
-                getMapExpression().get("port") != null) {
-            int port = (int) getMapExpression().get("port");
-            server = getServer(port);
-            return new ArrayList<>(server.getSocketPool());
-        } else if (getMapExpression().get("option") == null &&
-                getMapExpression().get("port") != null) {
-            int port = (int) getMapExpression().get("port");
-            server = getServer(port);
-            return Collections.singletonList(server);
-        } else throw new NoSuchObjectException("Data is missing");
-    }
 
     private SimpleServer getServer(int port) throws NoSuchObjectException {
         SimpleServer server = servers.stream()
@@ -143,17 +41,83 @@ public class SimpleServerController extends Controller {
         else return client;
     }
 
-    private void removeClient(SimpleServer server, int port) {
-        try {
-            SocketChannel channel = getClient(server, port);
-            channel.close();
-            server.getSocketPool().remove(channel);
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
-        }
+    private SocketChannel removeClient(SimpleServer server, int port) throws IOException {
+        SocketChannel channel = getClient(server, port);
+        channel.close();
+        server.getSocketPool().remove(channel);
+        return channel;
     }
 
     public LinkedBlockingQueue<SimpleServer> getServers() {
         return servers;
+    }
+
+    /**
+     * This method creates a SimpleServer. When the specified port is busy, then the
+     * method throws {@code BindException}
+     *
+     * @param serverPort
+     * @param maxClients
+     * @return
+     * @throws IOException
+     */
+    public SimpleServer create(int serverPort, int maxClients) throws IOException {
+        SimpleServer server = new SimpleServer(serverPort, maxClients);
+        servers.add(server);
+//            todo when the method throws BindException, then you need to handle:
+//             "Port is not available. Please use another port"
+        return server;
+    }
+
+    public SimpleServer stop(int serverPort) throws IOException {
+        SimpleServer server = getServer(serverPort);
+        server.stopServer();
+        servers.remove(server);
+        return server;
+    }
+
+    public List<SimpleServer> stopAllServers() throws IOException {
+        List<SimpleServer> serverList = new ArrayList<>(servers);
+        for ( SimpleServer server : servers) {
+            server.stopServer();
+        }
+        servers.clear();
+        return serverList;
+    }
+
+    public SocketChannel removeClient(int serverPort, int clientPort) throws IOException {
+        SimpleServer server = getServer(serverPort);
+        return removeClient(server, clientPort);
+    }
+
+    public List<SocketChannel> removeAllClients(int serverPort) throws IOException {
+        SimpleServer server = getServer(serverPort);
+        List<SocketChannel> clients = new ArrayList<>(server.getSocketPool());
+        server.rejectAllSockets();
+        return clients;
+    }
+
+    public List<SimpleServer> getAllServers() {
+        return new ArrayList<>(servers);
+    }
+
+    public SimpleServer get(int port) throws NoSuchObjectException {
+        return getServer(port);
+    }
+
+    public List<SocketChannel> getAllClients(int serverPort) throws NoSuchObjectException {
+        SimpleServer server = getServer(serverPort);
+        return new ArrayList<>(server.getSocketPool());
+    }
+
+    public void read(int serverPort) throws IOException {
+        SimpleServer server;
+        try {
+            server = getServer(serverPort);
+        } catch (NoSuchObjectException e) {
+            System.err.println(e.getMessage());
+            return;
+        }
+        server.startCaching();
     }
 }

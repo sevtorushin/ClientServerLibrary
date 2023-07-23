@@ -1,6 +1,7 @@
 package servers;
 
 import entity.Cached;
+import exceptions.ConnectClientException;
 import utils.ArrayUtils;
 
 import java.io.IOException;
@@ -24,6 +25,8 @@ public class SimpleServer implements Runnable, Cached {
     private final LinkedBlockingQueue<SocketChannel> socketPool;
     private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();
     private boolean stopped;
+    private boolean cached;
+    private final int TEMP_BUFFER_SIZE = 512;
 
     public SimpleServer(int port) throws IOException {
         this.endpoint = new InetSocketAddress(port);
@@ -58,15 +61,17 @@ public class SimpleServer implements Runnable, Cached {
                 connectSocket(clientSocket);
                 checkAliveSocket();
             } catch (IOException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             } catch (InterruptedException e) {
+                return;
+            } catch (ConnectClientException e) {
                 System.err.println(e.getMessage());
             }
         }
     }
 
 
-    private boolean connectSocket(SocketChannel socketChannel) {
+    private boolean connectSocket(SocketChannel socketChannel) throws IOException, ConnectClientException {
         if (socketChannel == null)
             return false;
         boolean isAdded;
@@ -74,15 +79,13 @@ public class SimpleServer implements Runnable, Cached {
             isAdded = socketPool.offer(socketChannel);
             if (!isAdded) {
                 socketChannel.close();
-                System.out.println("Connection is rejected");
-                return false;
+                throw new ConnectClientException("Client rejected");
             } else {
                 socketChannel.configureBlocking(false);
                 socketChannel.register(selector, SelectionKey.OP_READ);
-                System.out.println("Client connected");
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            rejectSocket(socketChannel);
         }
         return true;
     }
@@ -94,14 +97,10 @@ public class SimpleServer implements Runnable, Cached {
         return socketPool.remove(socketChannel);
     }
 
-    public boolean rejectAllSockets() {
-        socketPool.forEach(socketChannel -> {
-            try {
-                rejectSocket(socketChannel);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+    public boolean rejectAllSockets() throws IOException {
+        for (SocketChannel channel : socketPool) {
+            rejectSocket(channel);
+        }
         return socketPool.isEmpty();
     }
 
@@ -113,21 +112,18 @@ public class SimpleServer implements Runnable, Cached {
         return socketPool;
     }
 
-    public void stopServer() {
-        try {
-            stopped = true;
-            rejectAllSockets();
-            serverSocketChannel.close();
-            System.out.println("Server stopped");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void stopServer() throws IOException {
+        stopped = true;
+        cached = false;
+        rejectAllSockets();
+        serverSocketChannel.close();
     }
 
-    public void startCaching() {
-        ByteBuffer buffer = ByteBuffer.allocate(512); //todo вынести емкость в константу
+    public void startCaching() throws IOException {
+        cached = true;
+        ByteBuffer buffer = ByteBuffer.allocate(TEMP_BUFFER_SIZE);
         try {
-            while (!stopped) {
+            while (!stopped && cached) {
                 int readyChannels = selector.selectNow();
                 if (readyChannels == 0) {
                     Thread.sleep(100);
@@ -137,40 +133,40 @@ public class SimpleServer implements Runnable, Cached {
                 while (iterator.hasNext()) {
                     SelectionKey key = iterator.next();
                     iterator.remove();
-                    if (stopped)
+                    if (stopped) {
+                        cached = false;
                         return;
+                    }
                     if (key.isReadable()) {
                         SocketChannel sc = (SocketChannel) key.channel();
                         try {
                             if (sc.read(buffer) == -1) {
                                 rejectSocket(sc);
+                                cached = false;
                                 break;
                             }
                         } catch (IOException e) {
                             rejectSocket(sc);
+                            cached = false;
                             break;
                         }
                         byte[] bytes = ArrayUtils.arrayTrim(buffer);
                         saveToCache(bytes);
 //                                System.out.println(Arrays.toString(bytes));
-                                System.out.println("Cache size = " + getCacheSize());
+                        System.out.println("Cache size = " + getCacheSize());
                         buffer.clear();
                     }
                 }
             }
-            System.out.println("Reading completed");
-        } catch (IOException | InterruptedException e) {
-            System.err.println("Caching interrupted\n" + e.getMessage());
+            cached = false;
+        } catch (InterruptedException e) {
+            cached = false;
         }
     }
 
     @Override
     public void saveToCache(byte[] data) {
-        try {
-            cache.put(data);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        cache.add(data);
     }
 
     @Override
@@ -200,11 +196,9 @@ public class SimpleServer implements Runnable, Cached {
         if (cache.size() == 0)
             data = new byte[0];
         else
-            try {
-                data = cache.take();
-            } catch (InterruptedException e) {
-                data = new byte[0];
-            }
+            data = cache.poll();
+        if (data == null)
+            data = new byte[0];
         return data;
     }
 
@@ -222,6 +216,10 @@ public class SimpleServer implements Runnable, Cached {
 
     public InetSocketAddress getEndpoint() {
         return endpoint;
+    }
+
+    public boolean isCached() {
+        return cached;
     }
 
     @Override
@@ -243,14 +241,14 @@ public class SimpleServer implements Runnable, Cached {
             return "SimpleServer{" +
                     "host=" + getEndpoint().getHostString() + "; " +
                     "port=" + getEndpoint().getPort() + "; " +
-                    "MultiThread Server" + "; " +
+                    "MultiClient Server" + "; " +
                     "Max clients=" + DEFAULT_SOCKET_POOL_SIZE +
                     '}';
         else
             return "SimpleServer{" +
                     "host=" + getEndpoint().getHostString() + "; " +
                     "port=" + getEndpoint().getPort() + "; " +
-                    "SingleThread Server" +
+                    "SingleClient Server" +
                     '}';
     }
 }

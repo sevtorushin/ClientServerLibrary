@@ -4,9 +4,7 @@ import entity.Cached;
 import utils.ArrayUtils;
 
 import java.io.IOException;
-import java.net.ConnectException;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
@@ -18,6 +16,8 @@ public class SimpleClient implements Runnable, Cached {
     private final InetSocketAddress endpoint;
     private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();
     private boolean isConnected;
+    private boolean cached;
+    private final int TEMP_BUFFER_SIZE = 512;
 
     public SimpleClient(InetSocketAddress endpoint) {
         this.endpoint = endpoint;
@@ -32,67 +32,44 @@ public class SimpleClient implements Runnable, Cached {
         try {
             connect();
         } catch (IOException e) {
-            e.printStackTrace();
+            e.printStackTrace(); //todo логировать
         }
     }
 
     public void connect() throws IOException {
-        try {
-            channel = SocketChannel.open();
-//            channel.configureBlocking(false);
-            channel.connect(endpoint);
-            isConnected = true;
-        } catch (UnknownHostException e) {
-            System.err.println("Unknown host " + channel.socket().getInetAddress().getHostAddress());
-        } catch (ConnectException e) {
-            if (e.getMessage().contains("timed out")) {
-                System.err.println("Connection to server " + channel.socket().getInetAddress().getHostAddress() + " timed out");
-            }
-        } catch (IOException e) {
-            if (e.getMessage().equals("Connection refused: connect"))
-                System.err.println("The server is not running on the specified endpoint " + channel.socket().getPort());
-            else throw new IOException();
-        }
+        channel = SocketChannel.open();
+        channel.connect(endpoint);
+        isConnected = true;
     }
 
-    public void disconnect() {
-        try {
+    public void disconnect() throws IOException {
+        if (channel != null)
             channel.close();
-            isConnected = false;
-            System.out.println("Client disconnected");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        isConnected = false;
+        cached = false;
     }
 
-    public void write(ByteBuffer srcBuf) {
-        try {
-            channel.write(srcBuf);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void write(ByteBuffer srcBuf) throws IOException {
+        channel.write(srcBuf);
     }
 
     public void startCaching() throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(512); //todo вынести емкость в константу
-        while (isConnected) {
+        cached = true;
+        ByteBuffer buffer = ByteBuffer.allocate(TEMP_BUFFER_SIZE);
+        while (isConnected && cached) {
             read(buffer);
             byte[] bytes = ArrayUtils.arrayTrim(buffer);
             saveToCache(bytes);
-                        System.out.println(Arrays.toString(bytes));
-                        System.out.println("Cache size = " + getCacheSize());
+//                        System.out.println(Arrays.toString(bytes));
+            System.out.println("Cache size = " + getCacheSize());
             buffer.clear();
         }
-        System.out.println("Reading completed");
+        cached = false;
     }
 
     @Override
     public void saveToCache(byte[] data) {
-        try {
-            cache.put(data);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        cache.add(data);
     }
 
     public void read(ByteBuffer dstBuf) throws IOException {
@@ -144,6 +121,10 @@ public class SimpleClient implements Runnable, Cached {
 
     public boolean isStopped() {
         return !isConnected;
+    }
+
+    public boolean isCached() {
+        return cached;
     }
 
     @Override

@@ -12,15 +12,15 @@ public abstract class Controller {
     private static CommandCollection command;
     private static final Map<String, Object> mapExpression = new HashMap<>();
 
-    public static Controller getControlInstance(String expression) {
-        fillMap();
-        setMapExpression(expression);
-        if (mapExpression.get("targObj").equals("-s"))
-            return SimpleServerController.getInstance();
-        else if (mapExpression.get("targObj").equals("-c"))
-            return SimpleClientController.getInstance();
-        else throw new IllegalArgumentException("Illegal key expression");
-    }
+//    public static Controller getControlInstance(String expression) {
+//        fillMap();
+//        setMapExpression(expression);
+//        if (mapExpression.get("targObj").equals("-s"))
+//            return SimpleServerController.getInstance();
+//        else if (mapExpression.get("targObj").equals("-c"))
+//            return SimpleClientController.getInstance();
+//        else throw new IllegalArgumentException("Illegal key expression");
+//    }
 
     private static void setMapExpression(String expression) {
         String[] tokens = expression.split(" +");

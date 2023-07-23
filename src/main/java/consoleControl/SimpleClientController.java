@@ -1,18 +1,16 @@
 package consoleControl;
 
 import clients.SimpleClient;
-import entity.Cached;
 
 import java.io.IOException;
-import java.nio.channels.SocketChannel;
 import java.rmi.NoSuchObjectException;
+import java.rmi.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class SimpleClientController extends Controller {
+public class SimpleClientController {
     private static SimpleClientController controller;
-    private LinkedBlockingQueue<SimpleClient> clients = new LinkedBlockingQueue<>();
-    private final Map<String, Object> mapExpression = new HashMap<>();
+    private final LinkedBlockingQueue<SimpleClient> clients = new LinkedBlockingQueue<>();
 
 
     private SimpleClientController() {
@@ -23,80 +21,6 @@ public class SimpleClientController extends Controller {
             controller = new SimpleClientController();
             return controller;
         } else return controller;
-    }
-
-    @Override
-    public Cached create() {
-        SimpleClient client;
-        String host = (String) getMapExpression().get("host");
-        int port = (int) getMapExpression().get("port");
-        client = new SimpleClient(host, port);
-        clients.add(client);
-        return client;
-    }
-
-    @Override
-    public List<Cached> stop() throws NoSuchObjectException {
-        SimpleClient client;
-        if (getMapExpression().get("option") != null &&
-                getMapExpression().get("option").equals("all".toLowerCase())) {
-            clients.forEach(SimpleClient::disconnect);
-            clients.clear();
-            return new ArrayList<>(clients);
-        } else if (getMapExpression().get("option") == null &&
-                getMapExpression().get("port") != null) {
-            int port = (int) getMapExpression().get("port");
-            client = getClient(port);
-            client.disconnect();
-            clients.remove(client);
-            return Collections.singletonList(client);
-        } else throw new IllegalArgumentException("Wrong arguments expression");
-    }
-
-    @Override
-    public List<SocketChannel> remove() {
-        return null;
-    }
-
-    @Override
-    public void read() {
-        SimpleClient client;
-        if (getMapExpression().get("option") == null &&
-                getMapExpression().get("host") != null &&
-                getMapExpression().get("port") != null) {
-            String host = (String) getMapExpression().get("host");
-            int port = (int) getMapExpression().get("port");
-            try {
-                client = getClient(port);
-            } catch (NoSuchObjectException e) {
-                System.err.println(e.getMessage());
-                return;
-            }
-            if (!client.getEndpoint().getHostString().equals(host)) {
-                System.err.println("Unknown host");
-                return;
-            }
-            try {
-                client.startCaching();
-            } catch (IOException e) {
-                client.disconnect();
-                clients.remove(client);
-            }
-        } else System.err.println("Wrong input expression");
-    }
-
-    @Override
-    public List<SimpleClient> get() throws NoSuchObjectException {
-        SimpleClient client;
-        if (getMapExpression().get("option") != null &&
-                getMapExpression().get("option").equals("all".toLowerCase()))
-            return new ArrayList<>(clients);
-        else if (getMapExpression().get("option") == null &&
-                getMapExpression().get("port") != null) {
-            int port = (int) getMapExpression().get("port");
-            client = getClient(port);
-            return Collections.singletonList(client);
-        } else throw new NoSuchObjectException("Data is missing");
     }
 
     private SimpleClient getClient(int port) throws NoSuchObjectException {
@@ -112,5 +36,47 @@ public class SimpleClientController extends Controller {
 
     public LinkedBlockingQueue<SimpleClient> getClients() {
         return clients;
+    }
+
+    public SimpleClient create(String host, int port) {
+        SimpleClient client;
+        client = new SimpleClient(host, port);
+        clients.add(client);
+        return client;
+    }
+
+    public SimpleClient stop(int port) throws IOException {
+        SimpleClient client = getClient(port);
+        client.disconnect();
+        clients.remove(client);
+        return client;
+    }
+
+    public List<SimpleClient> stopAllClients() throws IOException {
+        for (SimpleClient client : clients) {
+            client.disconnect();
+        }
+        List<SimpleClient> clientList = new ArrayList<>(clients);
+        clients.clear();
+        return clientList;
+    }
+
+    public List<SimpleClient> getAllClients() {
+        return new ArrayList<>(clients);
+    }
+
+    public void read(String host, int port) throws IOException {
+        SimpleClient client;
+        client = getClient(port);
+        String clientHost = client.getEndpoint().getHostString();
+        if (!clientHost.equals(host)) {
+            throw new UnknownHostException("Unknown host " + clientHost);
+        }
+        try {
+            client.startCaching();
+        } catch (IOException e) {
+            client.disconnect();
+            clients.remove(client);
+        }
     }
 }

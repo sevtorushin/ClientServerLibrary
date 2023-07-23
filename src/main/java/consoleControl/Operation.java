@@ -32,7 +32,7 @@ public class Operation implements Runnable {
         while (true) {
             try {
                 expression = scanner.nextLine();
-                controller = Controller.getControlInstance(expression);
+                controller = /*Controller.getControlInstance(expression)*/ null;
                 command = controller.getCommand();
                 switch (command) {
                     case START:
