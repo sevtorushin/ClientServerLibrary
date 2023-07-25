@@ -1,5 +1,6 @@
 package servers;
 
+import consoleControl.HandlersCommand;
 import entity.Cached;
 import exceptions.ConnectClientException;
 import utils.ArrayUtils;
@@ -11,11 +12,10 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Consumer;
 
 public class SimpleServer implements Runnable, Cached {
     private final ServerSocketChannel serverSocketChannel;
@@ -24,8 +24,8 @@ public class SimpleServer implements Runnable, Cached {
     private int DEFAULT_SOCKET_POOL_SIZE = 1;
     private final LinkedBlockingQueue<SocketChannel> socketPool;
     private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();
+    private final Map<HandlersCommand, Consumer<byte[]>> handlers = new HashMap<>();
     private boolean stopped;
-    private boolean cached;
     private final int TEMP_BUFFER_SIZE = 512;
 
     public SimpleServer(int port) throws IOException {
@@ -50,7 +50,13 @@ public class SimpleServer implements Runnable, Cached {
     @Override
     public void run() {
         SocketChannel clientSocket;
-        stopped = false;
+        new Thread(() -> {
+            try {
+                processDataFromClient();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
         while (!isStopped()) {
             try {
                 clientSocket = serverSocketChannel.accept();
@@ -114,16 +120,21 @@ public class SimpleServer implements Runnable, Cached {
 
     public void stopServer() throws IOException {
         stopped = true;
-        cached = false;
         rejectAllSockets();
+        selector.close();
         serverSocketChannel.close();
     }
 
-    public void startCaching() throws IOException {
-        cached = true;
+    public void startCaching() {
+        if (handlers.containsKey(HandlersCommand.CACHE))
+            throw new IllegalArgumentException("Task list already contains " + HandlersCommand.CACHE);
+        handlers.put(HandlersCommand.CACHE, this::saveToCache);
+    }
+
+    public void processDataFromClient() throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(TEMP_BUFFER_SIZE);
         try {
-            while (!stopped && cached) {
+            while (!stopped) {
                 int readyChannels = selector.selectNow();
                 if (readyChannels == 0) {
                     Thread.sleep(100);
@@ -134,7 +145,6 @@ public class SimpleServer implements Runnable, Cached {
                     SelectionKey key = iterator.next();
                     iterator.remove();
                     if (stopped) {
-                        cached = false;
                         return;
                     }
                     if (key.isReadable()) {
@@ -142,31 +152,28 @@ public class SimpleServer implements Runnable, Cached {
                         try {
                             if (sc.read(buffer) == -1) {
                                 rejectSocket(sc);
-                                cached = false;
                                 break;
                             }
                         } catch (IOException e) {
                             rejectSocket(sc);
-                            cached = false;
                             break;
                         }
                         byte[] bytes = ArrayUtils.arrayTrim(buffer);
-                        saveToCache(bytes);
-//                                System.out.println(Arrays.toString(bytes));
-                        System.out.println("Cache size = " + getCacheSize());
+                        if (!handlers.isEmpty())
+                            handlers.forEach((s, consumer) -> consumer.accept(bytes));
                         buffer.clear();
                     }
                 }
             }
-            cached = false;
         } catch (InterruptedException e) {
-            cached = false;
+            return;
         }
     }
 
     @Override
     public void saveToCache(byte[] data) {
         cache.add(data);
+        System.out.println("Cache size = " + getCacheSize()); //todo удалить
     }
 
     @Override
@@ -202,6 +209,16 @@ public class SimpleServer implements Runnable, Cached {
         return data;
     }
 
+    public void addTask(HandlersCommand command, Consumer<byte[]> task) {
+        if (handlers.containsKey(command))
+            throw new IllegalArgumentException("Task list already contains " + command);
+            handlers.put(command, task);
+    }
+
+    public void removeTask(HandlersCommand command) {
+        handlers.remove(command);
+    }
+
     public int getSocketAmount() {
         return socketPool.size();
     }
@@ -218,8 +235,8 @@ public class SimpleServer implements Runnable, Cached {
         return endpoint;
     }
 
-    public boolean isCached() {
-        return cached;
+    public Map<HandlersCommand, Consumer<byte[]>> getHandlers() {
+        return handlers;
     }
 
     @Override

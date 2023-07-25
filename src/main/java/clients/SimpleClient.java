@@ -1,30 +1,39 @@
 package clients;
 
+import consoleControl.HandlersCommand;
 import entity.Cached;
 import utils.ArrayUtils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Consumer;
 
 public class SimpleClient implements Runnable, Cached {
     private SocketChannel channel;
     private final InetSocketAddress endpoint;
     private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();
+    private final Map<HandlersCommand, Consumer<byte[]>> handlers = new HashMap<>();
+    private final Selector selector;
     private boolean isConnected;
-    private boolean cached;
     private final int TEMP_BUFFER_SIZE = 512;
 
-    public SimpleClient(InetSocketAddress endpoint) {
+    public SimpleClient(InetSocketAddress endpoint) throws IOException {
         this.endpoint = endpoint;
+        this.selector = Selector.open();
     }
 
-    public SimpleClient(String host, int port) {
+    public SimpleClient(String host, int port) throws IOException {
         this.endpoint = new InetSocketAddress(host, port);
+        this.selector = Selector.open();
     }
 
     @Override
@@ -39,41 +48,56 @@ public class SimpleClient implements Runnable, Cached {
     public void connect() throws IOException {
         channel = SocketChannel.open();
         channel.connect(endpoint);
+        channel.configureBlocking(false);
+        channel.register(selector, SelectionKey.OP_READ);
         isConnected = true;
     }
 
     public void disconnect() throws IOException {
-        if (channel != null)
+        if (channel != null) {
+            selector.close();
             channel.close();
+        }
         isConnected = false;
-        cached = false;
     }
 
     public void write(ByteBuffer srcBuf) throws IOException {
         channel.write(srcBuf);
     }
 
-    public void startCaching() throws IOException {
-        cached = true;
+    public void processDataFromClient() throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(TEMP_BUFFER_SIZE);
-        while (isConnected && cached) {
-            read(buffer);
-            byte[] bytes = ArrayUtils.arrayTrim(buffer);
-            saveToCache(bytes);
-//                        System.out.println(Arrays.toString(bytes));
-            System.out.println("Cache size = " + getCacheSize());
-            buffer.clear();
+        try {
+            while (!isConnected) {
+                Thread.sleep(100);
+            }
+            while (isConnected) {
+                int i = channel.read(buffer);
+                if (i == 0) {
+                    Thread.sleep(100);
+                    continue;
+                }
+                if (i == -1) {
+                    throw new IOException();
+                }
+                byte[] bytes = ArrayUtils.arrayTrim(buffer);
+                if (!handlers.isEmpty())
+                    handlers.forEach((s, consumer) -> consumer.accept(bytes));
+                buffer.clear();
+            }
+        } catch (InterruptedException e) {
+            disconnect();
         }
-        cached = false;
     }
 
     @Override
     public void saveToCache(byte[] data) {
         cache.add(data);
+        System.out.println("Cache size = " + getCacheSize()); //todo удалить
     }
 
-    public void read(ByteBuffer dstBuf) throws IOException {
-        channel.read(dstBuf);
+    public int read(ByteBuffer dstBuf) throws IOException {
+        return channel.read(dstBuf);
     }
 
     @Override
@@ -111,6 +135,20 @@ public class SimpleClient implements Runnable, Cached {
         return data;
     }
 
+    public void addTask(HandlersCommand command, Consumer<byte[]> task) {
+        if (handlers.containsKey(command))
+            throw new IllegalArgumentException("Task list already contains " + command);
+        handlers.put(command, task);
+    }
+
+    public void removeTask(HandlersCommand command) {
+        handlers.remove(command);
+    }
+
+    public Map<HandlersCommand, Consumer<byte[]>> getHandlers() {
+        return handlers;
+    }
+
     public InetSocketAddress getEndpoint() {
         return endpoint;
     }
@@ -123,8 +161,8 @@ public class SimpleClient implements Runnable, Cached {
         return !isConnected;
     }
 
-    public boolean isCached() {
-        return cached;
+    public SocketChannel getChannel() { //todo убрать
+        return channel;
     }
 
     @Override

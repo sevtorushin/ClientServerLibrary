@@ -8,7 +8,7 @@ public enum CommandCollection {
     READ("-read"),
     EXIT("-exit");
 
-    private final String mnemonic;
+    private String mnemonic;
 
     CommandCollection(String mnemonic) {
         this.mnemonic = mnemonic;
@@ -16,5 +16,9 @@ public enum CommandCollection {
 
     public String getMnemonic(){
         return mnemonic;
+    }
+
+    public void setMnemonic(CommandCollection c, String mnemonic){
+        c.mnemonic = mnemonic;
     }
 }

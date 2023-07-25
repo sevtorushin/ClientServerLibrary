@@ -1,8 +1,11 @@
-package consoleControl;
+package controllers;
 
+import consoleControl.CommandCollection;
+import consoleControl.HandlersCommand;
 import servers.SimpleServer;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.rmi.NoSuchObjectException;
 import java.util.*;
@@ -48,10 +51,6 @@ public class SimpleServerController {
         return channel;
     }
 
-    public LinkedBlockingQueue<SimpleServer> getServers() {
-        return servers;
-    }
-
     /**
      * This method creates a SimpleServer. When the specified port is busy, then the
      * method throws {@code BindException}
@@ -78,7 +77,7 @@ public class SimpleServerController {
 
     public List<SimpleServer> stopAllServers() throws IOException {
         List<SimpleServer> serverList = new ArrayList<>(servers);
-        for ( SimpleServer server : servers) {
+        for (SimpleServer server : servers) {
             server.stopServer();
         }
         servers.clear();
@@ -101,23 +100,50 @@ public class SimpleServerController {
         return new ArrayList<>(servers);
     }
 
-    public SimpleServer get(int port) throws NoSuchObjectException {
-        return getServer(port);
-    }
-
     public List<SocketChannel> getAllClients(int serverPort) throws NoSuchObjectException {
         SimpleServer server = getServer(serverPort);
         return new ArrayList<>(server.getSocketPool());
     }
 
-    public void read(int serverPort) throws IOException {
-        SimpleServer server;
-        try {
-            server = getServer(serverPort);
-        } catch (NoSuchObjectException e) {
-            System.err.println(e.getMessage());
-            return;
-        }
-        server.startCaching();
+    public void startCaching(int serverPort) throws NoSuchObjectException {
+        SimpleServer server = getServer(serverPort);
+        server.addTask(HandlersCommand.CACHE, server::saveToCache);
+    }
+
+    public void stopCaching(int serverPort) throws NoSuchObjectException {
+        SimpleServer server = getServer(serverPort);
+        server.removeTask(HandlersCommand.CACHE);
+    }
+
+    public void printRawReceiveData(int serverPort) throws NoSuchObjectException {
+        SimpleServer server = getServer(serverPort);
+        server.addTask(HandlersCommand.PRINT, bytes -> System.out.println(Arrays.toString(bytes)));
+    }
+
+    public void stopPrinting(int serverPort) throws NoSuchObjectException {
+        SimpleServer server = getServer(serverPort);
+        server.removeTask(HandlersCommand.PRINT);
+    }
+
+    public List<HandlersCommand> getRunnableTasks(int serverPort) throws NoSuchObjectException {
+        SimpleServer server = getServer(serverPort);
+        return new ArrayList<>(server.getHandlers().keySet());
+    }
+
+    public void startTransferToClient(int serverPort, int clientPort) throws IOException {
+        SimpleServer server = getServer(serverPort);
+        SocketChannel channel = getClient(server, clientPort);
+        server.addTask(HandlersCommand.TRANSFER, bytes -> {
+            try {
+                channel.write(ByteBuffer.wrap(bytes));
+            } catch (IOException e) {
+                server.removeTask(HandlersCommand.TRANSFER);
+            }
+        });
+    }
+
+    public void stopTransferToClient(int serverPort) throws NoSuchObjectException {
+        SimpleServer server = getServer(serverPort);
+        server.removeTask(HandlersCommand.TRANSFER);
     }
 }
