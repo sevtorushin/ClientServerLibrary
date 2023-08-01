@@ -1,8 +1,6 @@
-package controllers;
+package clients.simple;
 
-import clients.SimpleClient;
 import consoleControl.HandlersCommand;
-import servers.SimpleServer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -26,7 +24,9 @@ public class SimpleClientController {
         } else return controller;
     }
 
-    public SimpleClient getClient(int port) throws NoSuchObjectException { //todo переделать на private
+
+
+    private SimpleClient getClient(int port) throws NoSuchObjectException {
         SimpleClient client = clients.stream()
                 .filter(cl -> cl.getEndpoint().getPort() == port)
                 .findFirst()
@@ -37,7 +37,7 @@ public class SimpleClientController {
         return client;
     }
 
-    public LinkedBlockingQueue<SimpleClient> getClients() {
+    public LinkedBlockingQueue<SimpleClient> getClientPool() {
         return clients;
     }
 

@@ -1,7 +1,7 @@
 package consoleControl;
 
-import controllers.SimpleClientController;
-import controllers.SimpleServerController;
+import clients.simple.SimpleClientController;
+import servers.simple.SimpleServerController;
 import picocli.CommandLine;
 import utils.ConnectionUtils;
 

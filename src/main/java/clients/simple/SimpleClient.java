@@ -1,4 +1,4 @@
-package clients;
+package clients.simple;
 
 import consoleControl.HandlersCommand;
 import entity.Cached;
@@ -11,9 +11,9 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
@@ -21,7 +21,7 @@ public class SimpleClient implements Runnable, Cached {
     private SocketChannel channel;
     private final InetSocketAddress endpoint;
     private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();
-    private final Map<HandlersCommand, Consumer<byte[]>> handlers = new HashMap<>();
+    private volatile Map<HandlersCommand, Consumer<byte[]>> handlers = new ConcurrentHashMap<>();
     private final Selector selector;
     private boolean isConnected;
     private final int TEMP_BUFFER_SIZE = 512;
@@ -45,7 +45,7 @@ public class SimpleClient implements Runnable, Cached {
         }
     }
 
-    public void connect() throws IOException {
+    private void connect() throws IOException {
         channel = SocketChannel.open();
         channel.connect(endpoint);
         channel.configureBlocking(false);
@@ -53,7 +53,7 @@ public class SimpleClient implements Runnable, Cached {
         isConnected = true;
     }
 
-    public void disconnect() throws IOException {
+    void disconnect() throws IOException {
         if (channel != null) {
             selector.close();
             channel.close();
@@ -61,11 +61,11 @@ public class SimpleClient implements Runnable, Cached {
         isConnected = false;
     }
 
-    public void write(ByteBuffer srcBuf) throws IOException {
+    void write(ByteBuffer srcBuf) throws IOException {
         channel.write(srcBuf);
     }
 
-    public void processDataFromClient() throws IOException {
+    void processDataFromClient() throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(TEMP_BUFFER_SIZE);
         try {
             while (!isConnected) {
@@ -93,10 +93,9 @@ public class SimpleClient implements Runnable, Cached {
     @Override
     public void saveToCache(byte[] data) {
         cache.add(data);
-        System.out.println("Cache size = " + getCacheSize()); //todo удалить
     }
 
-    public int read(ByteBuffer dstBuf) throws IOException {
+    int read(ByteBuffer dstBuf) throws IOException {
         return channel.read(dstBuf);
     }
 
@@ -135,34 +134,38 @@ public class SimpleClient implements Runnable, Cached {
         return data;
     }
 
-    public void addTask(HandlersCommand command, Consumer<byte[]> task) {
+    void addTask(HandlersCommand command, Consumer<byte[]> task) {
         if (handlers.containsKey(command))
             throw new IllegalArgumentException("Task list already contains " + command);
         handlers.put(command, task);
     }
 
-    public void removeTask(HandlersCommand command) {
+    void removeTask(HandlersCommand command) {
         handlers.remove(command);
     }
 
-    public Map<HandlersCommand, Consumer<byte[]>> getHandlers() {
+    Map<HandlersCommand, Consumer<byte[]>> getHandlers() {
         return handlers;
     }
 
-    public InetSocketAddress getEndpoint() {
+    InetSocketAddress getEndpoint() {
         return endpoint;
     }
 
-    public int getCacheSize() {
+    public String getHost(){
+        return endpoint.getHostString();
+    }
+
+    public int getPort(){
+        return endpoint.getPort();
+    }
+
+    int getCacheSize() {
         return cache.size();
     }
 
     public boolean isStopped() {
         return !isConnected;
-    }
-
-    public SocketChannel getChannel() { //todo убрать
-        return channel;
     }
 
     @Override

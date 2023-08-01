@@ -1,4 +1,4 @@
-package servers;
+package servers.simple;
 
 import consoleControl.HandlersCommand;
 import entity.Cached;
@@ -77,7 +77,7 @@ public class SimpleServer implements Runnable, Cached {
     }
 
 
-    private boolean connectSocket(SocketChannel socketChannel) throws IOException, ConnectClientException {
+    boolean connectSocket(SocketChannel socketChannel) throws IOException, ConnectClientException {
         if (socketChannel == null)
             return false;
         boolean isAdded;
@@ -96,14 +96,14 @@ public class SimpleServer implements Runnable, Cached {
         return true;
     }
 
-    public boolean rejectSocket(SocketChannel socketChannel) throws IOException {
+    boolean rejectSocket(SocketChannel socketChannel) throws IOException {
         if (socketChannel == null)
             return false;
         socketChannel.close();
         return socketPool.remove(socketChannel);
     }
 
-    public boolean rejectAllSockets() throws IOException {
+    boolean rejectAllSockets() throws IOException {
         for (SocketChannel channel : socketPool) {
             rejectSocket(channel);
         }
@@ -114,24 +114,18 @@ public class SimpleServer implements Runnable, Cached {
         return socketPool.removeIf(socketChannel -> !socketChannel.isConnected());
     }
 
-    public BlockingQueue<SocketChannel> getSocketPool() {
+    BlockingQueue<SocketChannel> getSocketPool() {
         return socketPool;
     }
 
-    public void stopServer() throws IOException {
+    void stopServer() throws IOException {
         stopped = true;
         rejectAllSockets();
         selector.close();
         serverSocketChannel.close();
     }
 
-    public void startCaching() {
-        if (handlers.containsKey(HandlersCommand.CACHE))
-            throw new IllegalArgumentException("Task list already contains " + HandlersCommand.CACHE);
-        handlers.put(HandlersCommand.CACHE, this::saveToCache);
-    }
-
-    public void processDataFromClient() throws IOException {
+    void processDataFromClient() throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(TEMP_BUFFER_SIZE);
         try {
             while (!stopped) {
@@ -173,7 +167,6 @@ public class SimpleServer implements Runnable, Cached {
     @Override
     public void saveToCache(byte[] data) {
         cache.add(data);
-        System.out.println("Cache size = " + getCacheSize()); //todo удалить
     }
 
     @Override
@@ -209,21 +202,21 @@ public class SimpleServer implements Runnable, Cached {
         return data;
     }
 
-    public void addTask(HandlersCommand command, Consumer<byte[]> task) {
+    void addTask(HandlersCommand command, Consumer<byte[]> task) { //todo комманды сделать типа String?
         if (handlers.containsKey(command))
             throw new IllegalArgumentException("Task list already contains " + command);
             handlers.put(command, task);
     }
 
-    public void removeTask(HandlersCommand command) {
+    void removeTask(HandlersCommand command) {
         handlers.remove(command);
     }
 
-    public int getSocketAmount() {
+    int getSocketAmount() {
         return socketPool.size();
     }
 
-    public int getCacheSize() {
+    int getCacheSize() {
         return cache.size();
     }
 
@@ -231,11 +224,19 @@ public class SimpleServer implements Runnable, Cached {
         return stopped;
     }
 
-    public InetSocketAddress getEndpoint() {
+    InetSocketAddress getEndpoint() {
         return endpoint;
     }
 
-    public Map<HandlersCommand, Consumer<byte[]>> getHandlers() {
+    public String getHost(){
+        return endpoint.getHostString();
+    }
+
+    public int getPort(){
+        return endpoint.getPort();
+    }
+
+    Map<HandlersCommand, Consumer<byte[]>> getHandlers() {
         return handlers;
     }
 

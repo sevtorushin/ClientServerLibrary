@@ -1,10 +1,10 @@
 package consoleControl;
 
-import clients.SimpleClient;
-import controllers.SimpleClientController;
-import controllers.SimpleServerController;
+import clients.simple.SimpleClient;
+import clients.simple.SimpleClientController;
+import servers.simple.SimpleServerController;
 import picocli.CommandLine;
-import servers.SimpleServer;
+import servers.simple.SimpleServer;
 import utils.ConnectionUtils;
 
 import java.nio.channels.SocketChannel;

@@ -1,8 +1,6 @@
-package controllers;
+package servers.simple;
 
-import consoleControl.CommandCollection;
 import consoleControl.HandlersCommand;
-import servers.SimpleServer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -22,6 +20,9 @@ public class SimpleServerController {
         } else return controller;
     }
 
+    public LinkedBlockingQueue<SimpleServer> getServerPool() {
+        return servers;
+    } //todo что-то сделать, чтобы не давать ссылку на пул
 
     private SimpleServer getServer(int port) throws NoSuchObjectException {
         SimpleServer server = servers.stream()
@@ -53,7 +54,7 @@ public class SimpleServerController {
 
     /**
      * This method creates a SimpleServer. When the specified port is busy, then the
-     * method throws {@code BindException}
+     * method throws {@code IOException}
      *
      * @param serverPort
      * @param maxClients
@@ -63,8 +64,6 @@ public class SimpleServerController {
     public SimpleServer create(int serverPort, int maxClients) throws IOException {
         SimpleServer server = new SimpleServer(serverPort, maxClients);
         servers.add(server);
-//            todo when the method throws BindException, then you need to handle:
-//             "Port is not available. Please use another port"
         return server;
     }
 

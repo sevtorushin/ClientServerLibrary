@@ -1,10 +1,10 @@
 package consoleControl;
 
-import clients.SimpleClient;
-import controllers.SimpleClientController;
-import controllers.SimpleServerController;
+import clients.simple.SimpleClient;
+import clients.simple.SimpleClientController;
+import servers.simple.SimpleServerController;
 import picocli.CommandLine;
-import servers.SimpleServer;
+import servers.simple.SimpleServer;
 import utils.ConnectionUtils;
 
 import java.io.IOException;
@@ -20,7 +20,7 @@ public class Start implements Runnable {
 
     @CommandLine.Command(name = "server", aliases = {"-server", "-s"})
     SimpleServer startServer(@CommandLine.Option(names = "-p", required = true) int port,
-                     @CommandLine.Option(names = "-nc", defaultValue = "1") int maxClient) throws IOException {
+                             @CommandLine.Option(names = "-nc", defaultValue = "1") int maxClient) throws IOException {
 
         boolean isValidPort = ConnectionUtils.isValidPort(port) && ConnectionUtils.isFreePort(port);
         SimpleServer server = null;
@@ -30,14 +30,14 @@ public class Start implements Runnable {
                 return null;
             }
             server = serverController.create(port, maxClient);
-            System.out.printf("Server %s started on port %d\n", server, (server.getEndpoint().getPort()));
+            System.out.printf("Server %s started on port %d\n", server, (server.getPort()));
         }
         return server;
     }
 
     @CommandLine.Command(name = "client", aliases = {"-client", "-c"})
     SimpleClient startClient(@CommandLine.Option(names = "-h", required = true) String host,
-                     @CommandLine.Option(names = "-p", required = true) int port) throws IOException {
+                             @CommandLine.Option(names = "-p", required = true) int port) throws IOException {
 
         boolean isValidPort = ConnectionUtils.isValidPort(port);
         boolean isValidHost;
@@ -53,8 +53,8 @@ public class Start implements Runnable {
         if (isValidPort && isValidHost) {
             client = clientController.create(host, port);
             System.out.printf("Client connected to server %s: %d\n",
-                                client.getEndpoint().getAddress().getHostAddress(),
-                                client.getEndpoint().getPort());
+                    client.getHost(),
+                    client.getPort());
         }
         return client;
     }

@@ -29,7 +29,9 @@ public class ConnectionUtils {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             return serverSocket.getLocalPort() == port;
         } catch (IOException e) {
-            throw new IllegalArgumentException(String.format("Specify port %d is busy", port));
+            if (e.getMessage().contains("Address already in use: bind"))
+                throw new IllegalArgumentException(String.format("Specify port %d is busy", port));
+            else throw new RuntimeException(e);
         }
     }
 
