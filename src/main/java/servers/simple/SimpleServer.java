@@ -14,6 +14,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
@@ -24,7 +25,7 @@ public class SimpleServer implements Runnable, Cached {
     private int DEFAULT_SOCKET_POOL_SIZE = 1;
     private final LinkedBlockingQueue<SocketChannel> socketPool;
     private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();
-    private final Map<HandlersCommand, Consumer<byte[]>> handlers = new HashMap<>();
+    private final Map<String, Consumer<byte[]>> handlers = new ConcurrentHashMap<>();
     private boolean stopped;
     private final int TEMP_BUFFER_SIZE = 512;
 
@@ -167,6 +168,7 @@ public class SimpleServer implements Runnable, Cached {
     @Override
     public void saveToCache(byte[] data) {
         cache.add(data);
+        System.out.println("Cache size - " + getCacheSize()); //todo Удалить
     }
 
     @Override
@@ -202,13 +204,15 @@ public class SimpleServer implements Runnable, Cached {
         return data;
     }
 
-    void addTask(HandlersCommand command, Consumer<byte[]> task) { //todo комманды сделать типа String?
+    void addTask(String command, Consumer<byte[]> task) {
         if (handlers.containsKey(command))
             throw new IllegalArgumentException("Task list already contains " + command);
-            handlers.put(command, task);
+        handlers.put(command, task);
     }
 
-    void removeTask(HandlersCommand command) {
+    void removeTask(String command) {
+        if (!handlers.containsKey(command))
+            throw new IllegalArgumentException("Task list not contains this task " + command);
         handlers.remove(command);
     }
 
@@ -228,15 +232,15 @@ public class SimpleServer implements Runnable, Cached {
         return endpoint;
     }
 
-    public String getHost(){
+    public String getHost() {
         return endpoint.getHostString();
     }
 
-    public int getPort(){
+    public int getPort() {
         return endpoint.getPort();
     }
 
-    Map<HandlersCommand, Consumer<byte[]>> getHandlers() {
+    Map<String, Consumer<byte[]>> getHandlers() {
         return handlers;
     }
 

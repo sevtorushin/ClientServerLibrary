@@ -45,11 +45,13 @@ public class Stop implements Runnable {
     }
 
     @CommandLine.Command(name = "client", aliases = {"-client", "-c"})
-    void stopClient(@CommandLine.Option(names = "-p") int port,
+    void stopClient(@CommandLine.Option(names = "-h") String host,
+                    @CommandLine.Option(names = "-p") int port,
+                    @CommandLine.Option(names = "-id") int id,
                     @CommandLine.Option(names = {"-all", "all"}) boolean all) {
         ConnectionUtils.isValidPort(port);
 
-        if (all && port == 0) {
+        if (all && port == 0 && host == null && id == 0) {
             try {
                 List<SimpleClient> clientList = clientController.stopAllClients();
                 System.out.println("These clients have been disconnected:");
@@ -57,11 +59,10 @@ public class Stop implements Runnable {
             } catch (IOException e) {
                 e.printStackTrace(); //todo логировать
             }
-        } else if (!all && port != 0) {
+        } else if (!all && port != 0 && host != null) {
             try {
-                SimpleClient client = clientController.stop(port);
+                SimpleClient client = clientController.stop(host, port, id);
                 System.out.printf("Client %s have been disconnected\n", client);
-                client = null;
             } catch (IOException e) {
                 e.printStackTrace(); //todo логировать
             }

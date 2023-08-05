@@ -23,34 +23,31 @@ public class Print implements Runnable {
         }
 
         @CommandLine.Command(name = "server", aliases = {"-server", "-s"})
-        Runnable printServer(@CommandLine.Option(names = "-p", required = true) int port) {
+        void printServer(@CommandLine.Option(names = "-p", required = true) int port) {
             ConnectionUtils.isValidPort(port);
 
-            return () -> {
-                try {
-                    serverController.printRawReceiveData(port);
-                    System.out.printf("Printing for server %d started\n", port);
-                } catch (IOException e) {
-                    e.printStackTrace(); //todo логировать
-                }
-            };
+            try {
+                serverController.printRawReceiveData(port);
+                System.out.printf("Printing for server %d started\n", port);
+            } catch (IOException e) {
+                e.printStackTrace(); //todo логировать
+            }
         }
 
         @CommandLine.Command(name = "client", aliases = {"-client", "-c"})
-        Runnable printClient(@CommandLine.Option(names = "-h", required = true) String serverHost,
-                             @CommandLine.Option(names = "-p", required = true) int port) throws IOException {
+        void printClient(@CommandLine.Option(names = "-h", required = true) String serverHost,
+                         @CommandLine.Option(names = "-p", required = true) int port,
+                         @CommandLine.Option(names = "-id") int id) throws IOException {
             ConnectionUtils.isValidPort(port);
             ConnectionUtils.isValidHost(serverHost);
             ConnectionUtils.isReachedHost(serverHost);
 //            ConnectionUtils.isRunServer(serverHost, port);
-            return  () -> {
-                try {
-                    clientController.printRawReceiveData(port);
-                    System.out.printf("Printing for client %s: %d started\n",serverHost, port);
-                } catch (IOException e) {
-                    e.printStackTrace(); //todo логировать
-                }
-            };
+            try {
+                    clientController.printRawReceiveData(serverHost, port, id);
+                System.out.printf("Printing for client %s: %d started\n", serverHost, port);
+            } catch (IOException e) {
+                e.printStackTrace(); //todo логировать
+            }
         }
     }
 
@@ -64,34 +61,31 @@ public class Print implements Runnable {
         }
 
         @CommandLine.Command(name = "server", aliases = {"-server", "-s"})
-        Runnable printServer(@CommandLine.Option(names = "-p", required = true) int port) {
+        void printServer(@CommandLine.Option(names = "-p", required = true) int port) {
             ConnectionUtils.isValidPort(port);
 
-            return () -> {
-                try {
-                    serverController.stopPrinting(port);
-                    System.out.printf("Printing for server %d stopped\n", port);
-                } catch (IOException e) {
-                    e.printStackTrace(); //todo логировать
-                }
-            };
+            try {
+                serverController.stopPrinting(port);
+                System.out.printf("Printing for server %d stopped\n", port);
+            } catch (IOException e) {
+                e.printStackTrace(); //todo логировать
+            }
         }
 
         @CommandLine.Command(name = "client", aliases = {"-client", "-c"})
-        Runnable printClient(@CommandLine.Option(names = "-h", required = true) String serverHost,
-                             @CommandLine.Option(names = "-p", required = true) int port) throws IOException {
+        void printClient(@CommandLine.Option(names = "-h", required = true) String serverHost,
+                         @CommandLine.Option(names = "-p", required = true) int port,
+                         @CommandLine.Option(names = "-id") int id) throws IOException {
             ConnectionUtils.isValidPort(port);
             ConnectionUtils.isValidHost(serverHost);
             ConnectionUtils.isReachedHost(serverHost);
             ConnectionUtils.isRunServer(serverHost, port);
-            return  () -> {
-                try {
-                    clientController.stopPrinting(port);
-                    System.out.printf("Printing for client %s: %d stopped\n",serverHost, port);
-                } catch (IOException e) {
-                    e.printStackTrace(); //todo логировать
-                }
-            };
+            try {
+                    clientController.stopPrinting(serverHost, port, id);
+                System.out.printf("Printing for client %s: %d stopped\n", serverHost, port);
+            } catch (IOException e) {
+                e.printStackTrace(); //todo логировать
+            }
         }
     }
 }

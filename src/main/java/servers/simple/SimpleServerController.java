@@ -106,25 +106,25 @@ public class SimpleServerController {
 
     public void startCaching(int serverPort) throws NoSuchObjectException {
         SimpleServer server = getServer(serverPort);
-        server.addTask(HandlersCommand.CACHE, server::saveToCache);
+        server.addTask(String.format("CACHE for server %d", serverPort), server::saveToCache); //todo Сделать форматированный вывод
     }
 
     public void stopCaching(int serverPort) throws NoSuchObjectException {
         SimpleServer server = getServer(serverPort);
-        server.removeTask(HandlersCommand.CACHE);
+        server.removeTask("CACHE for server " + serverPort);
     }
 
     public void printRawReceiveData(int serverPort) throws NoSuchObjectException {
         SimpleServer server = getServer(serverPort);
-        server.addTask(HandlersCommand.PRINT, bytes -> System.out.println(Arrays.toString(bytes)));
+        server.addTask("PRINT for server " + serverPort, bytes -> System.out.println(Arrays.toString(bytes)));
     }
 
     public void stopPrinting(int serverPort) throws NoSuchObjectException {
         SimpleServer server = getServer(serverPort);
-        server.removeTask(HandlersCommand.PRINT);
+        server.removeTask("PRINT for server " + serverPort);
     }
 
-    public List<HandlersCommand> getRunnableTasks(int serverPort) throws NoSuchObjectException {
+    public List<String> getRunnableTasks(int serverPort) throws NoSuchObjectException {
         SimpleServer server = getServer(serverPort);
         return new ArrayList<>(server.getHandlers().keySet());
     }
@@ -132,17 +132,18 @@ public class SimpleServerController {
     public void startTransferToClient(int serverPort, int clientPort) throws IOException {
         SimpleServer server = getServer(serverPort);
         SocketChannel channel = getClient(server, clientPort);
-        server.addTask(HandlersCommand.TRANSFER, bytes -> {
-            try {
-                channel.write(ByteBuffer.wrap(bytes));
-            } catch (IOException e) {
-                server.removeTask(HandlersCommand.TRANSFER);
-            }
-        });
+        server.addTask("TRANSFER from server " + serverPort + " to client " + clientPort,
+                bytes -> {
+                    try {
+                        channel.write(ByteBuffer.wrap(bytes));
+                    } catch (IOException e) {
+                        server.removeTask("TRANSFER from server " + serverPort + " to client " + clientPort);
+                    }
+                });
     }
 
-    public void stopTransferToClient(int serverPort) throws NoSuchObjectException {
+    public void stopTransferToClient(int serverPort, int clientPort) throws NoSuchObjectException {
         SimpleServer server = getServer(serverPort);
-        server.removeTask(HandlersCommand.TRANSFER);
+        server.removeTask("TRANSFER from server " + serverPort + " to client " + clientPort);
     }
 }

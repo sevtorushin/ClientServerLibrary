@@ -3,8 +3,10 @@ package consoleControl;
 import picocli.CommandLine;
 
 import java.util.Scanner;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class ConsoleCommandRunner {
     private final ExecutorService service = Executors.newCachedThreadPool();
@@ -32,14 +34,20 @@ public class ConsoleCommandRunner {
 
             if (level2Result != null) {
                 if (level2Result instanceof Runnable) {
-                    service.submit((Runnable) level2Result);
+                    Future<?> f = service.submit((Runnable) level2Result);
+                        f.isDone();
                 }
             }
-            if (level3Result != null) {
-                if (level3Result instanceof Runnable) {
-                    service.submit((Runnable) level3Result);
-                }
-            }
+//            if (level3Result != null) { //todo Удалить
+//                if (level3Result instanceof Runnable) {
+//                    Future<?> f = service.submit((Runnable) level3Result);
+//                    try {
+//                        Object o = f.get();
+//                    } catch (InterruptedException | ExecutionException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//            }
             if (level1Result != null)
                 System.exit(level1Result);
         }

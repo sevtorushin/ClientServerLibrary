@@ -24,26 +24,25 @@ public class Transfer implements Runnable {
         }
 
         @CommandLine.Command(name = "server", aliases = {"-server", "-s"})
-        Runnable transferFromServer(@CommandLine.Option(names = "-p", required = true) int serverPort,
-                                    @CommandLine.Option(names = "-cp", required = true) int clientPort) {
+        void transferFromServer(@CommandLine.Option(names = "-p", required = true) int serverPort,
+                                @CommandLine.Option(names = "-cp", required = true) int clientPort) {
             ConnectionUtils.isValidPort(serverPort);
             ConnectionUtils.isValidPort(clientPort);
 
-            return () -> {
-                try {
-                    serverController.startTransferToClient(serverPort, clientPort);
-                    System.out.printf("Transfer from server %d to client %d started\n", serverPort, clientPort);
-                } catch (IOException e) {
-                    e.printStackTrace(); //todo логировать
-                }
-            };
+            try {
+                serverController.startTransferToClient(serverPort, clientPort);
+                System.out.printf("Transfer from server %d to client %d started\n", serverPort, clientPort);
+            } catch (IOException e) {
+                e.printStackTrace(); //todo логировать
+            }
         }
 
         @CommandLine.Command(name = "client", aliases = {"-client", "-c"})
-        Runnable transferToServer(@CommandLine.Option(names = "-ch", required = true) String serverHost,
-                                  @CommandLine.Option(names = "-cp", required = true) int clientPort,
-                                  @CommandLine.Option(names = "-sh", required = true) String anotherServerHost,
-                                  @CommandLine.Option(names = "-sp", required = true) int anotherServerPort) throws IOException {
+        void transferToServer(@CommandLine.Option(names = "-ch", required = true) String serverHost,
+                              @CommandLine.Option(names = "-cp", required = true) int clientPort,
+                              @CommandLine.Option(names = "-id") int id,
+                              @CommandLine.Option(names = "-sh", required = true) String anotherServerHost,
+                              @CommandLine.Option(names = "-sp", required = true) int anotherServerPort) throws IOException {
             ConnectionUtils.isValidPort(clientPort);
             ConnectionUtils.isValidPort(anotherServerPort);
             ConnectionUtils.isValidHost(serverHost);
@@ -51,15 +50,13 @@ public class Transfer implements Runnable {
             ConnectionUtils.isReachedHost(serverHost);
             ConnectionUtils.isReachedHost(anotherServerHost);
 //            ConnectionUtils.isRunServer(anotherServerHost, anotherServerPort);
-            return () -> {
-                try {
-                    clientController.startTransferToServer(clientPort, anotherServerHost, anotherServerPort);
-                    System.out.printf("Transfer from client %s: %d to server %s: %d started\n",
-                            serverHost, clientPort, anotherServerHost, anotherServerPort);
-                } catch (IOException e) {
-                    e.printStackTrace(); //todo логировать
-                }
-            };
+            try {
+                    clientController.startTransferToServer(serverHost, clientPort, id, anotherServerHost, anotherServerPort);
+                System.out.printf("Transfer from client %s: %d to server %s: %d started\n",
+                        serverHost, clientPort, anotherServerHost, anotherServerPort);
+            } catch (IOException e) {
+                e.printStackTrace(); //todo логировать
+            }
         }
     }
 
@@ -74,35 +71,34 @@ public class Transfer implements Runnable {
         }
 
         @CommandLine.Command(name = "server", aliases = {"-server", "-s"})
-        Runnable transferFromServer(@CommandLine.Option(names = "-p", required = true) int serverPort) {
+        void transferFromServer(@CommandLine.Option(names = "-p", required = true) int serverPort,
+                                @CommandLine.Option(names = "-cp", required = true) int clientPort) {
             ConnectionUtils.isValidPort(serverPort);
 
-            return () -> {
-                try {
-                    serverController.stopTransferToClient(serverPort);
-                    System.out.printf("Transfer from server %d stopped\n", serverPort);
-                } catch (NoSuchObjectException e) {
-                    System.err.println(e.getMessage());
-                }
-            };
+            try {
+                serverController.stopTransferToClient(serverPort, clientPort);
+                System.out.printf("Transfer from server %d stopped\n", serverPort);
+            } catch (NoSuchObjectException e) {
+                System.err.println(e.getMessage());
+            }
         }
 
         @CommandLine.Command(name = "client", aliases = {"-client", "-c"})
-        Runnable transferToServer(@CommandLine.Option(names = "-h", required = true) String serverHost,
-                                  @CommandLine.Option(names = "-p", required = true) int clientPort,
-                                  @CommandLine.Option(names = "-sp", required = true) int anotherServerPort) throws IOException {
+        void transferToServer(@CommandLine.Option(names = "-ch", required = true) String serverHost,
+                              @CommandLine.Option(names = "-cp", required = true) int clientPort,
+                              @CommandLine.Option(names = "-id") int id,
+                              @CommandLine.Option(names = "-sh", required = true) String anotherServerHost,
+                              @CommandLine.Option(names = "-sp", required = true) int anotherServerPort) throws IOException {
             ConnectionUtils.isValidPort(clientPort);
             ConnectionUtils.isValidHost(serverHost);
             ConnectionUtils.isReachedHost(serverHost);
-            return () -> {
-                try {
-                    clientController.stopTransferToServer(clientPort, anotherServerPort);
-                    System.out.printf("Transfer from client %s: %d to server %d stopped\n",
-                            serverHost, clientPort, anotherServerPort);
-                } catch (IOException e) {
-                    System.err.println(e.getMessage());
-                }
-            };
+            try {
+                    clientController.stopTransferToServer(serverHost, clientPort, id, anotherServerHost, anotherServerPort);
+                System.out.printf("Transfer from client %s: %d to server %d stopped\n",
+                        serverHost, clientPort, anotherServerPort);
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+            }
         }
     }
 }

@@ -20,39 +20,37 @@ public class Cache implements Runnable {
     class Begin implements Runnable {
         private final SimpleServerController serverController = SimpleServerController.getInstance();
         private final SimpleClientController clientController = SimpleClientController.getInstance();
+
         @Override
         public void run() {
         }
 
         @CommandLine.Command(name = "server", aliases = {"-server", "-s"})
-        Runnable cacheServer(@CommandLine.Option(names = "-p", required = true) int port) {
+        void cacheServer(@CommandLine.Option(names = "-p", required = true) int port) {
             ConnectionUtils.isValidPort(port);
 
-            return () -> {
-                try {
-                    serverController.startCaching(port);
-                    System.out.printf("Caching for server %d started\n", port);
-                } catch (IOException e) {
-                    e.printStackTrace(); //todo логировать
-                }
-            };
+            try {
+                serverController.startCaching(port);
+                System.out.printf("Caching for server %d started\n", port);
+            } catch (IOException e) {
+                e.printStackTrace(); //todo логировать
+            }
         }
 
         @CommandLine.Command(name = "client", aliases = {"-client", "-c"})
-        Runnable cacheClient(@CommandLine.Option(names = "-h", required = true) String serverHost,
-                             @CommandLine.Option(names = "-p", required = true) int port) throws IOException {
+        void cacheClient(@CommandLine.Option(names = "-h", required = true) String serverHost,
+                         @CommandLine.Option(names = "-p", required = true) int port,
+                         @CommandLine.Option(names = "-id") int id) throws IOException {
             ConnectionUtils.isValidPort(port);
             ConnectionUtils.isValidHost(serverHost);
             ConnectionUtils.isReachedHost(serverHost);
 //            ConnectionUtils.isRunServer(serverHost, port);
-            return  () -> {
-                try {
-                    clientController.startCaching(serverHost, port);
-                    System.out.printf("Caching for client %s: %d started\n",serverHost, port);
-                } catch (IOException e) {
-                    e.printStackTrace(); //todo логировать
-                }
-            };
+            try {
+                    clientController.startCaching(serverHost, port, id);
+                System.out.printf("Caching for client %s: %d started\n", serverHost, port);
+            } catch (IOException e) {
+                e.printStackTrace(); //todo логировать
+            }
         }
     }
 
@@ -61,39 +59,37 @@ public class Cache implements Runnable {
     class Break implements Runnable {
         private final SimpleServerController serverController = SimpleServerController.getInstance();
         private final SimpleClientController clientController = SimpleClientController.getInstance();
+
         @Override
         public void run() {
         }
 
         @CommandLine.Command(name = "server", aliases = {"-server", "-s"})
-        Runnable cacheServer(@CommandLine.Option(names = "-p", required = true) int port) {
+        void cacheServer(@CommandLine.Option(names = "-p", required = true) int port) {
             ConnectionUtils.isValidPort(port);
 
-            return () -> {
-                try {
-                    serverController.stopCaching(port);
-                    System.out.printf("Caching for server %d stopped\n", port);
-                } catch (NoSuchObjectException e) {
-                    System.err.println(e.getMessage());
-                }
-            };
+            try {
+                serverController.stopCaching(port);
+                System.out.printf("Caching for server %d stopped\n", port);
+            } catch (NoSuchObjectException e) {
+                System.err.println(e.getMessage());
+            }
         }
 
         @CommandLine.Command(name = "client", aliases = {"-client", "-c"})
-        Runnable cacheClient(@CommandLine.Option(names = "-h", required = true) String serverHost,
-                             @CommandLine.Option(names = "-p", required = true) int port) throws IOException {
+        void cacheClient(@CommandLine.Option(names = "-h", required = true) String serverHost,
+                         @CommandLine.Option(names = "-p", required = true) int port,
+                         @CommandLine.Option(names = "-id") int id) throws IOException {
             ConnectionUtils.isValidPort(port);
             ConnectionUtils.isValidHost(serverHost);
             ConnectionUtils.isReachedHost(serverHost);
 //            ConnectionUtils.isRunServer(serverHost, port);
-            return  () -> {
-                try {
-                    clientController.stopCaching(port);
-                    System.out.printf("Caching for client %s: %d stopped\n",serverHost, port);
-                } catch (NoSuchObjectException e) {
-                    System.err.println(e.getMessage());
-                }
-            };
+            try {
+                    clientController.stopCaching(serverHost, port, id);
+                System.out.printf("Caching for client %s: %d stopped\n", serverHost, port);
+            } catch (NoSuchObjectException e) {
+                System.err.println(e.getMessage());
+            }
         }
     }
 }

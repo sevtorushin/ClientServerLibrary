@@ -2,9 +2,11 @@ package clients.simple;
 
 import consoleControl.HandlersCommand;
 import entity.Cached;
+import exceptions.ConnectClientException;
 import utils.ArrayUtils;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -17,14 +19,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
-public class SimpleClient implements Runnable, Cached {
+public class SimpleClient implements /*Runnable,*/ Cached {
     private SocketChannel channel;
     private final InetSocketAddress endpoint;
     private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();
-    private volatile Map<HandlersCommand, Consumer<byte[]>> handlers = new ConcurrentHashMap<>();
+    private volatile Map<String, Consumer<byte[]>> handlers = new ConcurrentHashMap<>();
     private final Selector selector;
     private boolean isConnected;
     private final int TEMP_BUFFER_SIZE = 512;
+    private int clientId;
+    static int clientCount;
 
     public SimpleClient(InetSocketAddress endpoint) throws IOException {
         this.endpoint = endpoint;
@@ -36,18 +40,24 @@ public class SimpleClient implements Runnable, Cached {
         this.selector = Selector.open();
     }
 
-    @Override
-    public void run() {
-        try {
-            connect();
-        } catch (IOException e) {
-            e.printStackTrace(); //todo логировать
-        }
-    }
+//    @Override
+//    public void run() {
+////        try {
+////            connect();
+////        } catch (IOException e) {
+////            e.printStackTrace(); //todo логировать
+////        }
+//    }
 
-    private void connect() throws IOException {
+    void connect() throws IOException {
         channel = SocketChannel.open();
-        channel.connect(endpoint);
+        try {
+            channel.connect(endpoint);
+        } catch (ConnectException e) {
+            if (e.getMessage().contains("Connection refused"))
+                throw new IOException("Not running server on specified endpoint " +
+                        endpoint.getHostString() + ": " + endpoint.getPort());
+        }
         channel.configureBlocking(false);
         channel.register(selector, SelectionKey.OP_READ);
         isConnected = true;
@@ -72,12 +82,25 @@ public class SimpleClient implements Runnable, Cached {
                 Thread.sleep(100);
             }
             while (isConnected) {
-                int i = channel.read(buffer);
+                int i;
+                try {
+                    i = channel.read(buffer);
+                }catch (IOException e){
+                    isConnected = false;
+                    handlers.entrySet().stream() //todo пофиксить дублирование кода
+                            .filter(entry -> entry.getKey().toLowerCase().contains("transfer from client"))
+                            .findFirst().orElseThrow(IOException::new).getValue().accept(new byte[0]);
+                    throw new IOException();
+                }
                 if (i == 0) {
                     Thread.sleep(100);
                     continue;
                 }
                 if (i == -1) {
+                    isConnected = false;
+                    handlers.entrySet().stream() //todo пофиксить дублирование кода
+                            .filter(entry -> entry.getKey().toLowerCase().contains("transfer from client"))
+                            .findFirst().orElseThrow(IOException::new).getValue().accept(new byte[0]);
                     throw new IOException();
                 }
                 byte[] bytes = ArrayUtils.arrayTrim(buffer);
@@ -93,6 +116,7 @@ public class SimpleClient implements Runnable, Cached {
     @Override
     public void saveToCache(byte[] data) {
         cache.add(data);
+        System.out.println("Cache size - " + getCacheSize()); //todo Удалить
     }
 
     int read(ByteBuffer dstBuf) throws IOException {
@@ -134,17 +158,19 @@ public class SimpleClient implements Runnable, Cached {
         return data;
     }
 
-    void addTask(HandlersCommand command, Consumer<byte[]> task) {
+    void addTask(String command, Consumer<byte[]> task) {
         if (handlers.containsKey(command))
             throw new IllegalArgumentException("Task list already contains " + command);
         handlers.put(command, task);
     }
 
-    void removeTask(HandlersCommand command) {
+    void removeTask(String command) {
+        if (!handlers.containsKey(command))
+            throw new IllegalArgumentException("Task list not contains this task " + command);
         handlers.remove(command);
     }
 
-    Map<HandlersCommand, Consumer<byte[]>> getHandlers() {
+    Map<String, Consumer<byte[]>> getHandlers() {
         return handlers;
     }
 
@@ -152,16 +178,24 @@ public class SimpleClient implements Runnable, Cached {
         return endpoint;
     }
 
-    public String getHost(){
+    public String getHost() {
         return endpoint.getHostString();
     }
 
-    public int getPort(){
+    public int getPort() {
         return endpoint.getPort();
     }
 
     int getCacheSize() {
         return cache.size();
+    }
+
+    public void setClientId(int clientId) {
+        this.clientId = clientId;
+    }
+
+    public int getClientId() {
+        return clientId;
     }
 
     public boolean isStopped() {
@@ -186,7 +220,8 @@ public class SimpleClient implements Runnable, Cached {
     public String toString() {
         return "SimpleClient{" +
                 "host=" + endpoint.getHostString() + "; " +
-                "port=" + endpoint.getPort() +
+                "port=" + endpoint.getPort() + "; " +
+                "id=" + clientId +
                 '}';
     }
 }
