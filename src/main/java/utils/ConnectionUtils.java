@@ -5,7 +5,6 @@ import exceptions.ConnectClientException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
-import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 
 public class ConnectionUtils {

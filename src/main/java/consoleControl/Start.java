@@ -48,7 +48,6 @@ public class Start implements Runnable {
             System.err.println(e.getMessage());
             return null;
         }
-//        ConnectionUtils.isRunServer(host, port);
         SimpleClient client = null;
         if (isValidPort && isValidHost) {
             client = clientController.create(host, port);
