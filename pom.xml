@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>tbi</groupId>
-    <artifactId>DrillingDataReceiver</artifactId>
+    <artifactId>ClientServerLibrary</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -66,7 +66,7 @@
                     <archive>
                         <manifest>
                             <mainClass>
-                                test.StartLocalServer
+                                test.StartConsoleAPI
                             </mainClass>
                         </manifest>
                     </archive>
