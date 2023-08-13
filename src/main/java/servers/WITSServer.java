@@ -6,7 +6,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class WITSServer extends AbstractReceiveSrv {
-//    private static final Logger log = LogManager.getLogger(WITSServer.class.getSimpleName());
 
     public WITSServer(int port) {
         super(port, 512, new WITSValidator());

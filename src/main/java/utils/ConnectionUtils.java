@@ -70,10 +70,10 @@ public class ConnectionUtils {
             try {
                 Thread.sleep(checkTime);
             } catch (InterruptedException e) {
-                e.printStackTrace(); //todo как-то обработать
+                return;
             }
         }
-        t1.stop();
+        t1.stop(); // логика работы позволяет использовать такой метод!
         throw new ConnectClientException("Client disconnected");
     }
 

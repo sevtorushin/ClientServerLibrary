@@ -30,7 +30,6 @@ public class ConsoleCommandRunner {
             cmd.execute(exp);
             Integer level1Result = getLevel1Object(cmd);
             Object level2Result = getLevel2Object(cmd);
-            Object level3Result = getLevel3Object(cmd);
 
             if (level2Result != null) {
                 if (level2Result instanceof Runnable) {
@@ -38,16 +37,6 @@ public class ConsoleCommandRunner {
                         f.isDone();
                 }
             }
-//            if (level3Result != null) { //todo Удалить
-//                if (level3Result instanceof Runnable) {
-//                    Future<?> f = service.submit((Runnable) level3Result);
-//                    try {
-//                        Object o = f.get();
-//                    } catch (InterruptedException | ExecutionException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
-//            }
             if (level1Result != null)
                 System.exit(level1Result);
         }
@@ -75,17 +64,5 @@ public class ConsoleCommandRunner {
                 return sub.getExecutionResult();
             } else return null;
         } else return null;
-    }
-
-    private Object getLevel3Object(CommandLine cmd) {
-        CommandLine.ParseResult parseResult = cmd.getParseResult();
-        if (parseResult.subcommand() != null) {
-            if (parseResult.subcommand().subcommand() != null)
-                if (parseResult.subcommand().subcommand().subcommand() != null) {
-                    CommandLine sub3 = parseResult.subcommand().subcommand().subcommand().commandSpec().commandLine();
-                    return sub3.getExecutionResult();
-                }
-        }
-        return null;
     }
 }

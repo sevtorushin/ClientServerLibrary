@@ -41,7 +41,6 @@ public class Print implements Runnable {
             ConnectionUtils.isValidPort(port);
             ConnectionUtils.isValidHost(serverHost);
             ConnectionUtils.isReachedHost(serverHost);
-//            ConnectionUtils.isRunServer(serverHost, port);
             try {
                     clientController.printRawReceiveData(serverHost, port, id);
                 System.out.printf("Printing for client %s: %d started\n", serverHost, port);

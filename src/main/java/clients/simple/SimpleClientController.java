@@ -1,7 +1,5 @@
 package clients.simple;
 
-import consoleControl.HandlersCommand;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.rmi.NoSuchObjectException;
@@ -13,6 +11,7 @@ import java.util.function.Predicate;
 public class SimpleClientController {
     private static SimpleClientController controller;
     private final LinkedBlockingQueue<SimpleClient> clients = new LinkedBlockingQueue<>();
+    private final LinkedBlockingQueue<SimpleClient> newClients = new LinkedBlockingQueue<>();
 
 
     private SimpleClientController() {
@@ -44,9 +43,19 @@ public class SimpleClientController {
         return client;
     }
 
-    public LinkedBlockingQueue<SimpleClient> getClientPool() {
-        return clients;
-    } //todo что-то сделать, чтобы не давать ссылку на пул
+    private void addToPool(SimpleClient client) {
+        clients.add(client);
+        newClients.add(client);
+    }
+
+    private void removeFromPool(SimpleClient client) {
+        clients.remove(client);
+        newClients.remove(client);
+    }
+
+    public SimpleClient getNewClient() {
+        return newClients.poll();
+    }
 
     private void startRead(String host, int port, int id) throws IOException {
         SimpleClient client = getClient(host, port, id);
@@ -54,7 +63,7 @@ public class SimpleClientController {
             client.processDataFromClient();
         } catch (IOException e) {
             client.disconnect();
-            clients.remove(client);
+            removeFromPool(client);
         }
     }
 
@@ -64,7 +73,7 @@ public class SimpleClientController {
         client.connect();
         SimpleClient.clientCount++;
         client.setClientId(SimpleClient.clientCount);
-        clients.add(client);
+        addToPool(client);
         new Thread(() -> {
             try {
                 startRead(host, port, SimpleClient.clientCount);
@@ -78,7 +87,7 @@ public class SimpleClientController {
     public SimpleClient stop(String host, int port, int id) throws IOException {
         SimpleClient client = getClient(host, port, id);
         client.disconnect();
-        clients.remove(client);
+        removeFromPool(client);
         return client;
     }
 
@@ -88,6 +97,7 @@ public class SimpleClientController {
         }
         List<SimpleClient> clientList = new ArrayList<>(clients);
         clients.clear();
+        newClients.clear();
         return clientList;
     }
 
@@ -129,14 +139,12 @@ public class SimpleClientController {
                                       String hostAnotherServer, int portAnotherServer) throws IOException {
         SimpleClient fromClient = getClient(fromClientHost, fromClientPort, fromClientId);
         SimpleClient transferToAnotherServerClient = create(hostAnotherServer, portAnotherServer);
-//        new Thread(transferToAnotherServerClient).start();
         fromClient.addTask("TRANSFER from client " + fromClientHost + " " + fromClientPort + " " + fromClientId +
                 " to server " + hostAnotherServer + " " + portAnotherServer, bytes -> {
             try {
                 if (!fromClient.isStopped()) {
                     transferToAnotherServerClient.write(ByteBuffer.wrap(bytes));
-                }
-                else {
+                } else {
                     stop(hostAnotherServer, portAnotherServer, 0);
                 }
             } catch (IOException e) {

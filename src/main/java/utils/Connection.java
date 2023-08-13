@@ -34,8 +34,6 @@ public class Connection implements AutoCloseable {
                     this.socket = new Socket(getHost(), getPort());
                 this.inputStream = socket.getInputStream();
                 this.outputStream = socket.getOutputStream();
-//                socketChannel = SocketChannel.open();
-//                socketChannel.connect(socketAddress);
             } else throw new ConnectClientException("The specified endpoint " + getHost() + " unreachable");
         } catch (UnknownHostException e) {
             log.debug("Unknown host ", e);
@@ -70,32 +68,6 @@ public class Connection implements AutoCloseable {
             throw new ConnectClientException(e.getMessage());
         }
     }
-
-//    public void connect() throws ConnectClientException {
-//        try {
-//            socketChannel = SocketChannel.open();
-//            if (isReachedHost(getHost()))
-//                socketChannel.connect(socketAddress);
-//            else
-//                throw new ConnectClientException("The specified endpoint " + getHost() + " unreachable");
-//            this.socket = socketChannel.socket();
-//            this.inputStream = socket.getInputStream();
-//            this.outputStream = socket.getOutputStream();
-//        } catch (UnknownHostException e) {
-//            log.debug("Unknown host ", e);
-//            throw new ConnectClientException("Unknown host " + getHost());
-//        } catch (ConnectException e) {
-//            if (e.getMessage().contains("timed out")) {
-//                log.debug("Connection to server " + getHost() + " timed out", e);
-//                throw new ConnectClientException(e.getMessage());
-//            }
-//        } catch (IOException e) {
-//            if (e.getMessage().equals("Connection refused: connect")) {
-//                log.debug("The server is not running on the specified endpoint " + getPort(), e);
-//                throw new ConnectClientException("The server is not running on the specified endpoint " + getPort());
-//            } else throw new ConnectClientException(e.getMessage());
-//        }
-//    }
 
     public boolean reconnectToServer() throws ConnectClientException {
         for (int i = 0; i < NUMBER_OF_CONNECTION_ATTEMPTS; i++) {

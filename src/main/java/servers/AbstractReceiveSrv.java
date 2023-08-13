@@ -124,7 +124,7 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
                     LocalDateTime dateTime = LocalDateTime.now();
                     String s = dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
                     byte[] b = ArrayUtils.arrayTrim(buffer);
-                    if (!cache.offer(new byte[][]{s.getBytes(), b})) {    //todo обработать условие когда offer отдает false (если очередь переполнена)
+                    if (!cache.offer(new byte[][]{s.getBytes(), b})) {
                         log.error("Local cache full");
                         continue;
                     }
@@ -157,16 +157,6 @@ public abstract class AbstractReceiveSrv extends AbstractServer implements Recei
             }
         }).start();
     }
-
-//    protected boolean isClosedInputStream(InputStream is) throws IOException {
-//        try {
-//            if (is.read(buffer) == -1)
-//                return true;
-//        } catch (IOException e) {
-//            log.debug(e);
-//        }
-//        return false;
-//    }
 
     protected static void readFromClientToBuffer(AbstractClient client, byte[] buffer) throws ConnectClientException {
         try {

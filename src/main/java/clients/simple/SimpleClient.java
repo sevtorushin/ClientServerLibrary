@@ -1,8 +1,6 @@
 package clients.simple;
 
-import consoleControl.HandlersCommand;
 import entity.Cached;
-import exceptions.ConnectClientException;
 import utils.ArrayUtils;
 
 import java.io.IOException;
@@ -19,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
-public class SimpleClient implements /*Runnable,*/ Cached {
+public class SimpleClient implements Cached {
     private SocketChannel channel;
     private final InetSocketAddress endpoint;
     private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();
@@ -40,14 +38,6 @@ public class SimpleClient implements /*Runnable,*/ Cached {
         this.selector = Selector.open();
     }
 
-//    @Override
-//    public void run() {
-////        try {
-////            connect();
-////        } catch (IOException e) {
-////            e.printStackTrace(); //todo логировать
-////        }
-//    }
 
     void connect() throws IOException {
         channel = SocketChannel.open();
@@ -82,15 +72,13 @@ public class SimpleClient implements /*Runnable,*/ Cached {
                 Thread.sleep(100);
             }
             while (isConnected) {
-                int i;
+                int i = 0;
                 try {
                     i = channel.read(buffer);
                 }catch (IOException e){
                     isConnected = false;
-                    handlers.entrySet().stream() //todo пофиксить дублирование кода
-                            .filter(entry -> entry.getKey().toLowerCase().contains("transfer from client"))
-                            .findFirst().orElseThrow(IOException::new).getValue().accept(new byte[0]);
-                    throw new IOException();
+                    dropTransferTask();
+//                    throw new IOException();
                 }
                 if (i == 0) {
                     Thread.sleep(100);
@@ -98,10 +86,8 @@ public class SimpleClient implements /*Runnable,*/ Cached {
                 }
                 if (i == -1) {
                     isConnected = false;
-                    handlers.entrySet().stream() //todo пофиксить дублирование кода
-                            .filter(entry -> entry.getKey().toLowerCase().contains("transfer from client"))
-                            .findFirst().orElseThrow(IOException::new).getValue().accept(new byte[0]);
-                    throw new IOException();
+                    dropTransferTask();
+//                    throw new IOException();
                 }
                 byte[] bytes = ArrayUtils.arrayTrim(buffer);
                 if (!handlers.isEmpty())
@@ -111,6 +97,15 @@ public class SimpleClient implements /*Runnable,*/ Cached {
         } catch (InterruptedException e) {
             disconnect();
         }
+    }
+
+    private void dropTransferTask() throws IOException {
+        handlers.entrySet().stream()
+                .filter(entry -> entry.getKey().toLowerCase().contains("transfer from client"))
+                .findFirst()
+                .orElseThrow(IOException::new)
+                .getValue()
+                .accept(new byte[0]);
     }
 
     @Override

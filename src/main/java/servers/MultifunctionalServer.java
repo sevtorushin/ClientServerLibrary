@@ -13,7 +13,6 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 
 public class MultifunctionalServer extends AbstractReceiveSrv {
-    private final int cacheSize = 1_000_000;
     private static final Logger log = LogManager.getLogger(MultifunctionalServer.class.getSimpleName());
 
     public MultifunctionalServer(int port, String keyFilePath) {
@@ -45,14 +44,4 @@ public class MultifunctionalServer extends AbstractReceiveSrv {
         }
         return client;
     }
-
-//    @Override
-//    protected boolean isClosedInputStream(InputStream is) throws IOException {
-//        byte[] buf = getBuffer();
-//        if (is.read(buf) == -1 || buf[0] == 0) {
-//            log.debug("InputStream closed");
-//            return true;
-//        }
-//        return false;
-//    }
 }

@@ -49,7 +49,6 @@ public class Transfer implements Runnable {
             ConnectionUtils.isValidHost(anotherServerHost);
             ConnectionUtils.isReachedHost(serverHost);
             ConnectionUtils.isReachedHost(anotherServerHost);
-//            ConnectionUtils.isRunServer(anotherServerHost, anotherServerPort);
             try {
                     clientController.startTransferToServer(serverHost, clientPort, id, anotherServerHost, anotherServerPort);
                 System.out.printf("Transfer from client %s: %d to server %s: %d started\n",
@@ -61,8 +60,7 @@ public class Transfer implements Runnable {
     }
 
     @CommandLine.Command(name = "break", aliases = {"-break", "br", "-br"})
-    static
-    class Break implements Runnable {
+    static class Break implements Runnable {
         private final SimpleServerController serverController = SimpleServerController.getInstance();
         private final SimpleClientController clientController = SimpleClientController.getInstance();
 

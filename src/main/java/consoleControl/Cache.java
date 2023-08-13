@@ -44,7 +44,6 @@ public class Cache implements Runnable {
             ConnectionUtils.isValidPort(port);
             ConnectionUtils.isValidHost(serverHost);
             ConnectionUtils.isReachedHost(serverHost);
-//            ConnectionUtils.isRunServer(serverHost, port);
             try {
                     clientController.startCaching(serverHost, port, id);
                 System.out.printf("Caching for client %s: %d started\n", serverHost, port);
@@ -83,7 +82,6 @@ public class Cache implements Runnable {
             ConnectionUtils.isValidPort(port);
             ConnectionUtils.isValidHost(serverHost);
             ConnectionUtils.isReachedHost(serverHost);
-//            ConnectionUtils.isRunServer(serverHost, port);
             try {
                     clientController.stopCaching(serverHost, port, id);
                 System.out.printf("Caching for client %s: %d stopped\n", serverHost, port);

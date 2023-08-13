@@ -1,7 +1,5 @@
 package servers.simple;
 
-import consoleControl.HandlersCommand;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -12,6 +10,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class SimpleServerController {
     private static SimpleServerController controller;
     private final LinkedBlockingQueue<SimpleServer> servers = new LinkedBlockingQueue<>();
+    private final LinkedBlockingQueue<SimpleServer> newServers = new LinkedBlockingQueue<>();
 
     public static SimpleServerController getInstance() {
         if (controller == null) {
@@ -19,10 +18,6 @@ public class SimpleServerController {
             return controller;
         } else return controller;
     }
-
-    public LinkedBlockingQueue<SimpleServer> getServerPool() {
-        return servers;
-    } //todo что-то сделать, чтобы не давать ссылку на пул
 
     private SimpleServer getServer(int port) throws NoSuchObjectException {
         SimpleServer server = servers.stream()
@@ -52,6 +47,20 @@ public class SimpleServerController {
         return channel;
     }
 
+    private void addToPool(SimpleServer server){
+        servers.add(server);
+        newServers.add(server);
+    }
+
+    private void removeFromPool(SimpleServer server){
+        servers.remove(server);
+        newServers.remove(server);
+    }
+
+    public SimpleServer getNewServer(){
+        return newServers.poll();
+    }
+
     /**
      * This method creates a SimpleServer. When the specified port is busy, then the
      * method throws {@code IOException}
@@ -63,14 +72,14 @@ public class SimpleServerController {
      */
     public SimpleServer create(int serverPort, int maxClients) throws IOException {
         SimpleServer server = new SimpleServer(serverPort, maxClients);
-        servers.add(server);
+        addToPool(server);
         return server;
     }
 
     public SimpleServer stop(int serverPort) throws IOException {
         SimpleServer server = getServer(serverPort);
         server.stopServer();
-        servers.remove(server);
+        removeFromPool(server);
         return server;
     }
 
@@ -80,6 +89,7 @@ public class SimpleServerController {
             server.stopServer();
         }
         servers.clear();
+        newServers.clear();
         return serverList;
     }
 
@@ -106,7 +116,7 @@ public class SimpleServerController {
 
     public void startCaching(int serverPort) throws NoSuchObjectException {
         SimpleServer server = getServer(serverPort);
-        server.addTask(String.format("CACHE for server %d", serverPort), server::saveToCache); //todo Сделать форматированный вывод
+        server.addTask(String.format("CACHE for server %d", serverPort), server::saveToCache);
     }
 
     public void stopCaching(int serverPort) throws NoSuchObjectException {

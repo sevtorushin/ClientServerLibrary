@@ -23,6 +23,7 @@ public abstract class AbstractServer implements Runnable {
     protected final ServerSocket serverSocket;
     private final int port;
     private final int maxNumberOfClient;
+    private int cacheSize = 1_000_000;
     protected volatile BlockingQueue<AbstractClient> clientPool;
     protected volatile Map<AbstractClient, LinkedBlockingQueue<byte[][]>> cachePool = new ConcurrentHashMap<>();
     protected final ReentrantLock lock = new ReentrantLock();
@@ -141,10 +142,9 @@ public abstract class AbstractServer implements Runnable {
     }
 
     public void stopServer() {
-//        isInterrupt = true;   //todo не удалять. Решить проблему с read() и раскомментировать строку
         isServerConnected = false;
         log.info("Server stopped");
-        System.exit(1); //todo удалить после решения проблемы с read()
+        System.exit(1);
     }
 
     protected Validator getValidator() {
@@ -181,7 +181,7 @@ public abstract class AbstractServer implements Runnable {
 
     protected boolean addToMap(AbstractClient client) {
         if (!cachePool.containsKey(client)) {
-            cachePool.put(client, new LinkedBlockingQueue<>(1_000_000)); //todo Размер кэша данных вынести в поле этого класса
+            cachePool.put(client, new LinkedBlockingQueue<>(cacheSize));
             log.debug("Added unique client " + client.getConnection().getHost() + " to cachePool");
         } else {
             cachePool.keySet()

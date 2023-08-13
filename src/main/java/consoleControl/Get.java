@@ -43,11 +43,9 @@ public class Get implements Runnable {
     @CommandLine.Command(name = "client", aliases = {"-client", "-c"})
     void getClient(@CommandLine.Option(names = {"-all", "all"}, required = true) boolean all) {
         List<SimpleClient> clients = clientController.getAllClients();
-//        if (all) {
             if (clients.isEmpty())
                 System.out.println("none");
             else
                 clients.forEach(System.out::println);
-//        }
     }
 }

@@ -23,7 +23,7 @@ public abstract class AbstractValidator implements Validator {
 
     @Override
     public boolean authenticate(byte[] data) {
-        AbstractClient client = null;
+        AbstractClient client;
         try {
             ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(data));
             client = (AbstractClient) ois.readObject();
