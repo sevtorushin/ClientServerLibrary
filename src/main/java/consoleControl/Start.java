@@ -2,6 +2,9 @@ package consoleControl;
 
 import clients.simple.SimpleClient;
 import clients.simple.SimpleClientController;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import servers.AbstractServer;
 import servers.simple.SimpleServerController;
 import picocli.CommandLine;
 import servers.simple.SimpleServer;
@@ -13,6 +16,8 @@ import java.io.IOException;
 public class Start implements Runnable {
     private final SimpleServerController serverController = SimpleServerController.getInstance();
     private final SimpleClientController clientController = SimpleClientController.getInstance();
+
+    private static final Logger log = LogManager.getLogger(Start.class.getSimpleName());
 
     @Override
     public void run() {
@@ -26,11 +31,11 @@ public class Start implements Runnable {
         SimpleServer server = null;
         if (isValidPort) {
             if (maxClient < 1) {
-                System.err.printf("Specified max number client %d for server not valid\n", maxClient);
+                log.error(String.format("Specified max number client %d for server not valid", maxClient));
                 return null;
             }
             server = serverController.create(port, maxClient);
-            System.out.printf("Server %s started on port %d\n", server, (server.getPort()));
+            log.info(String.format("Server %s started on port %d", server, (server.getPort())));
         }
         return server;
     }
@@ -45,15 +50,15 @@ public class Start implements Runnable {
             ConnectionUtils.isValidHost(host);
             isValidHost = ConnectionUtils.isReachedHost(host);
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            log.error("Connection to endpoint " + host + " failed", e);
             return null;
         }
         SimpleClient client = null;
         if (isValidPort && isValidHost) {
             client = clientController.create(host, port);
-            System.out.printf("Client connected to server %s: %d\n",
+            log.info(String.format("Client connected to server %s: %d",
                     client.getHost(),
-                    client.getPort());
+                    client.getPort()));
         }
         return client;
     }

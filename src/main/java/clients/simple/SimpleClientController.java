@@ -105,12 +105,8 @@ public class SimpleClientController {
         return new ArrayList<>(clients);
     }
 
-    public void startCaching(String host, int port, int id) throws IOException {
+    public void startCaching(String host, int port, int id) throws NoSuchObjectException {
         SimpleClient client = getClient(host, port, id);
-        String clientHost = client.getEndpoint().getHostString();
-        if (!clientHost.equals(host)) {
-            throw new UnknownHostException("Unknown host " + clientHost);
-        }
         client.addTask("CACHE for client " + host + " " + port, client::saveToCache);
     }
 

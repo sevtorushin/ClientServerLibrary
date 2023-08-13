@@ -65,10 +65,10 @@ public class SimpleServerController {
      * This method creates a SimpleServer. When the specified port is busy, then the
      * method throws {@code IOException}
      *
-     * @param serverPort
-     * @param maxClients
-     * @return
-     * @throws IOException
+     * @param serverPort Port on which the server will run
+     * @param maxClients Maximum number of connected clients
+     * @return SimpleServer
+     * @throws IOException ServerSocketChannel related exceptions
      */
     public SimpleServer create(int serverPort, int maxClients) throws IOException {
         SimpleServer server = new SimpleServer(serverPort, maxClients);
@@ -139,7 +139,7 @@ public class SimpleServerController {
         return new ArrayList<>(server.getHandlers().keySet());
     }
 
-    public void startTransferToClient(int serverPort, int clientPort) throws IOException {
+    public void startTransferToClient(int serverPort, int clientPort) throws NoSuchObjectException {
         SimpleServer server = getServer(serverPort);
         SocketChannel channel = getClient(server, clientPort);
         server.addTask("TRANSFER from server " + serverPort + " to client " + clientPort,

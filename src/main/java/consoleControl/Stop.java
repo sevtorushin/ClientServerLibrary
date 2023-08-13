@@ -2,6 +2,8 @@ package consoleControl;
 
 import clients.simple.SimpleClient;
 import clients.simple.SimpleClientController;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import servers.simple.SimpleServerController;
 import picocli.CommandLine;
 import servers.simple.SimpleServer;
@@ -16,6 +18,8 @@ public class Stop implements Runnable {
     private final SimpleServerController serverController = SimpleServerController.getInstance();
     private final SimpleClientController clientController = SimpleClientController.getInstance();
 
+    private static final Logger log = LogManager.getLogger(Stop.class.getSimpleName());
+
     @Override
     public void run() {
 
@@ -29,17 +33,18 @@ public class Stop implements Runnable {
         if (port == 0 && all) {
             try {
                 List<SimpleServer> serverList = serverController.stopAllServers();
+                log.debug("All servers has been stopped");
                 System.out.println("These servers have been stopped:");
                 serverList.forEach(System.out::println);
             } catch (IOException e) {
-                e.printStackTrace(); //todo логировать
+                log.error("Servers stop error", e);
             }
         } else if (!all && port != 0) {
             try {
                 SimpleServer server = serverController.stop(port);
-                System.out.printf("Server %s have been stopped\n", server);
+                log.info(String.format("Server %s have been stopped", server));
             } catch (IOException e) {
-                e.printStackTrace(); //todo логировать
+                log.error("Server stop error", e);
             }
         }
     }
@@ -54,17 +59,18 @@ public class Stop implements Runnable {
         if (all && port == 0 && host == null && id == 0) {
             try {
                 List<SimpleClient> clientList = clientController.stopAllClients();
+                log.debug("All clients have been disconnected");
                 System.out.println("These clients have been disconnected:");
                 clientList.forEach(System.out::println);
             } catch (IOException e) {
-                e.printStackTrace(); //todo логировать
+                log.error("Clients stop error", e);
             }
         } else if (!all && port != 0 && host != null) {
             try {
                 SimpleClient client = clientController.stop(host, port, id);
-                System.out.printf("Client %s have been disconnected\n", client);
+                log.info(String.format("Client %s have been disconnected", client));
             } catch (IOException e) {
-                e.printStackTrace(); //todo логировать
+                log.error("Client stop error", e);
             }
         }
     }

@@ -1,6 +1,8 @@
 package consoleControl;
 
 import clients.simple.SimpleClientController;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import servers.simple.SimpleServerController;
 import picocli.CommandLine;
 import utils.ConnectionUtils;
@@ -11,13 +13,14 @@ import java.rmi.NoSuchObjectException;
 @CommandLine.Command(name = "cache", aliases = {"-cache", "ch", "-ch"}, subcommands = {Cache.Begin.class, Cache.Break.class})
 public class Cache implements Runnable {
 
+    private static final Logger log = LogManager.getLogger(Cache.class.getSimpleName());
+
     @Override
     public void run() {
     }
 
     @CommandLine.Command(name = "begin", aliases = {"-begin", "bg", "-bg"})
-    static
-    class Begin implements Runnable {
+    static class Begin implements Runnable {
         private final SimpleServerController serverController = SimpleServerController.getInstance();
         private final SimpleClientController clientController = SimpleClientController.getInstance();
 
@@ -31,9 +34,9 @@ public class Cache implements Runnable {
 
             try {
                 serverController.startCaching(port);
-                System.out.printf("Caching for server %d started\n", port);
-            } catch (IOException e) {
-                e.printStackTrace(); //todo логировать
+                log.info(String.format("Caching for server %d started", port));
+            } catch (NoSuchObjectException e) {
+                log.warn("Server on specified port " + port + " is missing");
             }
         }
 
@@ -45,17 +48,16 @@ public class Cache implements Runnable {
             ConnectionUtils.isValidHost(serverHost);
             ConnectionUtils.isReachedHost(serverHost);
             try {
-                    clientController.startCaching(serverHost, port, id);
-                System.out.printf("Caching for client %s: %d started\n", serverHost, port);
-            } catch (IOException e) {
-                e.printStackTrace(); //todo логировать
+                clientController.startCaching(serverHost, port, id);
+                log.info(String.format("Caching for client %s: %d started", serverHost, port));
+            } catch (NoSuchObjectException e) {
+                log.warn("Client with specified endpoint " + serverHost + ": " + port + " is missing");
             }
         }
     }
 
     @CommandLine.Command(name = "break", aliases = {"-break", "br", "-br"})
-    static
-    class Break implements Runnable {
+    static class Break implements Runnable {
         private final SimpleServerController serverController = SimpleServerController.getInstance();
         private final SimpleClientController clientController = SimpleClientController.getInstance();
 
@@ -69,9 +71,9 @@ public class Cache implements Runnable {
 
             try {
                 serverController.stopCaching(port);
-                System.out.printf("Caching for server %d stopped\n", port);
+                log.info(String.format("Caching for server %d stopped", port));
             } catch (NoSuchObjectException e) {
-                System.err.println(e.getMessage());
+                log.warn("Server on specified port " + port + " is missing");
             }
         }
 
@@ -83,10 +85,10 @@ public class Cache implements Runnable {
             ConnectionUtils.isValidHost(serverHost);
             ConnectionUtils.isReachedHost(serverHost);
             try {
-                    clientController.stopCaching(serverHost, port, id);
-                System.out.printf("Caching for client %s: %d stopped\n", serverHost, port);
+                clientController.stopCaching(serverHost, port, id);
+                log.info(String.format("Caching for client %s: %d stopped", serverHost, port));
             } catch (NoSuchObjectException e) {
-                System.err.println(e.getMessage());
+                log.warn("Client on specified endpoint " + serverHost + ": " + port + " is missing");
             }
         }
     }

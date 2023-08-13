@@ -1,14 +1,20 @@
 package consoleControl;
 
 import clients.simple.SimpleClientController;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import servers.simple.SimpleServerController;
 import picocli.CommandLine;
 import utils.ConnectionUtils;
 
 import java.io.IOException;
+import java.rmi.NoSuchObjectException;
 
 @CommandLine.Command(name = "print", aliases = {"-print"}, subcommands = {Print.Begin.class, Print.Break.class})
 public class Print implements Runnable {
+
+    private static final Logger log = LogManager.getLogger(Print.class.getSimpleName());
+
     @Override
     public void run() {
     }
@@ -28,9 +34,9 @@ public class Print implements Runnable {
 
             try {
                 serverController.printRawReceiveData(port);
-                System.out.printf("Printing for server %d started\n", port);
-            } catch (IOException e) {
-                e.printStackTrace(); //todo логировать
+                log.info(String.format("Printing for server %d started", port));
+            } catch (NoSuchObjectException e) {
+                log.warn("Server on specified port " + port + " is missing");
             }
         }
 
@@ -42,10 +48,10 @@ public class Print implements Runnable {
             ConnectionUtils.isValidHost(serverHost);
             ConnectionUtils.isReachedHost(serverHost);
             try {
-                    clientController.printRawReceiveData(serverHost, port, id);
-                System.out.printf("Printing for client %s: %d started\n", serverHost, port);
-            } catch (IOException e) {
-                e.printStackTrace(); //todo логировать
+                clientController.printRawReceiveData(serverHost, port, id);
+                log.info(String.format("Printing for client %s: %d started", serverHost, port));
+            } catch (NoSuchObjectException e) {
+                log.warn("Client with specified endpoint " + serverHost + ": " + port + " is missing");
             }
         }
     }
@@ -65,9 +71,9 @@ public class Print implements Runnable {
 
             try {
                 serverController.stopPrinting(port);
-                System.out.printf("Printing for server %d stopped\n", port);
-            } catch (IOException e) {
-                e.printStackTrace(); //todo логировать
+                log.info(String.format("Printing for server %d stopped", port));
+            } catch (NoSuchObjectException e) {
+                log.warn("Server on specified port " + port + " is missing");
             }
         }
 
@@ -80,10 +86,10 @@ public class Print implements Runnable {
             ConnectionUtils.isReachedHost(serverHost);
             ConnectionUtils.isRunServer(serverHost, port);
             try {
-                    clientController.stopPrinting(serverHost, port, id);
-                System.out.printf("Printing for client %s: %d stopped\n", serverHost, port);
-            } catch (IOException e) {
-                e.printStackTrace(); //todo логировать
+                clientController.stopPrinting(serverHost, port, id);
+                log.info(String.format("Printing for client %s: %d stopped", serverHost, port));
+            } catch (NoSuchObjectException e) {
+                log.warn("Client with specified endpoint " + serverHost + ": " + port + " is missing");
             }
         }
     }

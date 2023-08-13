@@ -1,5 +1,7 @@
 package consoleControl;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import servers.simple.SimpleServerController;
 import picocli.CommandLine;
 import utils.ConnectionUtils;
@@ -11,6 +13,7 @@ import java.util.List;
 @CommandLine.Command(name = "remove", aliases = {"-remove"})
 public class Remove implements Runnable {
     private final SimpleServerController serverController = SimpleServerController.getInstance();
+    private static final Logger log = LogManager.getLogger(Remove.class.getSimpleName());
 
     @Override
     public void run() {
@@ -26,19 +29,23 @@ public class Remove implements Runnable {
         if (!all && clientPort != 0) {
             try {
                 SocketChannel channel = serverController.removeClient(serverPort, clientPort);
-                System.out.printf("Client %s: %d have been disconnected\n",
-                        channel.socket().getInetAddress().getHostAddress(), channel.socket().getPort());
+                log.info(String.format("Client %s: %d have been disconnected",
+                        channel.socket().getInetAddress().getHostAddress(), channel.socket().getPort()));
             } catch (IOException e) {
-                e.printStackTrace(); //todo логировать
+                if (e.getMessage().equals("No such client"))
+                    log.warn("Client with specified port " + clientPort + " is missing");
+                else log.error("Channel close error", e);
             }
         } else if (all && clientPort == 0) {
             try {
                 List<SocketChannel> channelList = serverController.removeAllClients(serverPort);
+                log.debug("All clients have been disconnected");
                 System.out.println("These clients have been disconnected:");
                 channelList.forEach(socketChannel -> System.out.println(
-                        socketChannel.socket().getInetAddress().getHostAddress() + ": " + socketChannel.socket().getPort()));
+                        socketChannel.socket().getInetAddress().getHostAddress() + ": " +
+                                socketChannel.socket().getPort()));
             } catch (IOException e) {
-                e.printStackTrace(); //todo логировать
+                log.error("Channel close error", e);
             }
         }
     }

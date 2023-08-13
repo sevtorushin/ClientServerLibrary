@@ -1,5 +1,7 @@
 package consoleControl;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import picocli.CommandLine;
 
 import java.util.Scanner;
@@ -8,24 +10,31 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class ConsoleCommandRunner {
+public class ConsoleCommandRunner implements Runnable{
     private final ExecutorService service = Executors.newCachedThreadPool();
     private final Scanner scanner = new Scanner(System.in);
     private final CommandLine cmd;
+
+    private static final Logger log = LogManager.getLogger(ConsoleCommandRunner.class.getSimpleName());
 
     public ConsoleCommandRunner(Object topLevelCommand) {
         cmd = new CommandLine(topLevelCommand);
         cmd.setExecutionStrategy(new CommandLine.RunLast());
     }
 
+    @Override
     public void run() {
         String expression;
         while (true) {
             expression = scanner.nextLine();
             String[] exp;
-            if (expression.isBlank())
+            if (expression.isBlank()) {
                 exp = new String[0];
-            else exp = expression.split(" ");
+                log.debug("Empty command entered");
+            } else {
+                exp = expression.split(" ");
+                log.debug("User enters this command: " + expression);
+            }
 
             cmd.execute(exp);
             Integer level1Result = getLevel1Object(cmd);
@@ -34,11 +43,14 @@ public class ConsoleCommandRunner {
             if (level2Result != null) {
                 if (level2Result instanceof Runnable) {
                     Future<?> f = service.submit((Runnable) level2Result);
-                        f.isDone();
+                    log.debug("Task processing begin");
+                    f.isDone();
                 }
             }
-            if (level1Result != null)
+            if (level1Result != null) {
+                log.debug("Exit. Exit code = " + level1Result);
                 System.exit(level1Result);
+            }
         }
     }
 

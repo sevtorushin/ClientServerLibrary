@@ -1,6 +1,8 @@
 package consoleControl;
 
 import clients.simple.SimpleClientController;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import servers.simple.SimpleServerController;
 import picocli.CommandLine;
 import utils.ConnectionUtils;
@@ -15,6 +17,8 @@ public class Task implements Runnable {
     private final SimpleServerController serverController = SimpleServerController.getInstance();
     private final SimpleClientController clientController = SimpleClientController.getInstance();
 
+    private static final Logger log = LogManager.getLogger(Task.class.getSimpleName());
+
     @Override
     public void run() {
     }
@@ -27,6 +31,7 @@ public class Task implements Runnable {
 
         List<String> tasks = serverController.getRunnableTasks(port);
         printTask(name, all, tasks);
+        log.debug("Result printed in console");
     }
 
     @CommandLine.Command(name = "client", aliases = {"-client", "-c"})
@@ -41,6 +46,7 @@ public class Task implements Runnable {
         List<String> tasks;
             tasks = clientController.getRunnableTasks(serverHost, port, id);
         printTask(name, all, tasks);
+        log.debug("Result printed in console");
     }
 
     private void printTask(String name, boolean all, List<String> tasks) {

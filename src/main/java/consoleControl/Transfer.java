@@ -1,6 +1,9 @@
 package consoleControl;
 
 import clients.simple.SimpleClientController;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.StringMapMessage;
 import servers.simple.SimpleServerController;
 import picocli.CommandLine;
 import utils.ConnectionUtils;
@@ -10,6 +13,9 @@ import java.rmi.NoSuchObjectException;
 
 @CommandLine.Command(name = "transfer", aliases = {"-transfer", "tr", "-tr"}, subcommands = {Transfer.Begin.class, Transfer.Break.class})
 public class Transfer implements Runnable {
+
+    private static final Logger log = LogManager.getLogger(Transfer.class.getSimpleName());
+
     @Override
     public void run() {
     }
@@ -31,9 +37,9 @@ public class Transfer implements Runnable {
 
             try {
                 serverController.startTransferToClient(serverPort, clientPort);
-                System.out.printf("Transfer from server %d to client %d started\n", serverPort, clientPort);
-            } catch (IOException e) {
-                e.printStackTrace(); //todo логировать
+                log.info(String.format("Transfer from server %d to client %d started", serverPort, clientPort));
+            } catch (NoSuchObjectException e) {
+                log.warn(e.getMessage());
             }
         }
 
@@ -50,11 +56,13 @@ public class Transfer implements Runnable {
             ConnectionUtils.isReachedHost(serverHost);
             ConnectionUtils.isReachedHost(anotherServerHost);
             try {
-                    clientController.startTransferToServer(serverHost, clientPort, id, anotherServerHost, anotherServerPort);
-                System.out.printf("Transfer from client %s: %d to server %s: %d started\n",
-                        serverHost, clientPort, anotherServerHost, anotherServerPort);
+                clientController.startTransferToServer(serverHost, clientPort, id, anotherServerHost, anotherServerPort);
+                log.info(String.format("Transfer from client %s: %d to server %s: %d started",
+                        serverHost, clientPort, anotherServerHost, anotherServerPort));
             } catch (IOException e) {
-                e.printStackTrace(); //todo логировать
+                if (e.getMessage().equals("No such client"))
+                    log.warn(e.getMessage());
+                else log.error(e);
             }
         }
     }
@@ -75,9 +83,9 @@ public class Transfer implements Runnable {
 
             try {
                 serverController.stopTransferToClient(serverPort, clientPort);
-                System.out.printf("Transfer from server %d stopped\n", serverPort);
+                log.info(String.format("Transfer from server %d stopped", serverPort));
             } catch (NoSuchObjectException e) {
-                System.err.println(e.getMessage());
+                log.warn("Server on specified port " + serverPort + " is missing");
             }
         }
 
@@ -91,11 +99,13 @@ public class Transfer implements Runnable {
             ConnectionUtils.isValidHost(serverHost);
             ConnectionUtils.isReachedHost(serverHost);
             try {
-                    clientController.stopTransferToServer(serverHost, clientPort, id, anotherServerHost, anotherServerPort);
-                System.out.printf("Transfer from client %s: %d to server %d stopped\n",
-                        serverHost, clientPort, anotherServerPort);
+                clientController.stopTransferToServer(serverHost, clientPort, id, anotherServerHost, anotherServerPort);
+                log.info(String.format("Transfer from client %s: %d to server %d stopped",
+                        serverHost, clientPort, anotherServerPort));
             } catch (IOException e) {
-                System.err.println(e.getMessage());
+                if (e.getMessage().equals("No such client"))
+                    log.warn("Client with specified endpoint " + serverHost + ": " + clientPort + " is missing");
+                else log.error("Close channel error", e);
             }
         }
     }
