@@ -111,7 +111,6 @@ public class SimpleClient implements Cached {
     @Override
     public void saveToCache(byte[] data) {
         cache.add(data);
-        System.out.println("Cache size - " + getCacheSize()); //todo Удалить
     }
 
     int read(ByteBuffer dstBuf) throws IOException {

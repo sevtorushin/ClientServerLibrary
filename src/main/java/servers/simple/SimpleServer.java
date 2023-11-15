@@ -167,7 +167,6 @@ public class SimpleServer implements Runnable, Cached {
     @Override
     public void saveToCache(byte[] data) {
         cache.add(data);
-        System.out.println("Cache size - " + getCacheSize()); //todo Удалить
     }
 
     @Override
