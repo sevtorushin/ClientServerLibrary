@@ -4,7 +4,6 @@ import clients.simple.SimpleClient;
 import clients.simple.SimpleClientController;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import servers.AbstractServer;
 import servers.simple.SimpleServerController;
 import picocli.CommandLine;
 import servers.simple.SimpleServer;
