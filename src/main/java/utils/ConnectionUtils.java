@@ -38,8 +38,9 @@ public class ConnectionUtils {
         try (Socket socket = new Socket(host, port)) {
             return true;
         } catch (IOException e) {
-            throw new IllegalArgumentException(String.format(
-                    "Server is not run on the specify endpoint %s:%d", host, port));
+//            throw new ConnectClientException(String.format(
+//                    "Server is not run on the specify endpoint %s:%d", host, port));
+            return false;
         }
     }
 
