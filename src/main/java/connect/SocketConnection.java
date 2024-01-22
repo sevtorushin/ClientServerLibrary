@@ -57,6 +57,7 @@ public class SocketConnection extends ClientConnection {
                     socket = new Socket();
                     socket.connect(endpoint);
                     isConnected = true;
+                    System.out.println("Connected");
                 } catch (IOException e){
                     System.out.println("Connection failed");
                 }

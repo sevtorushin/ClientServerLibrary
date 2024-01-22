@@ -12,8 +12,6 @@ public class SocketChannelConnection extends ClientConnection {
     private SocketChannel channel;
     private InetSocketAddress endpoint;
     private boolean isConnected;
-    private boolean isAlive;
-    private boolean autoReconnect;
 
     public SocketChannelConnection(SocketChannel channel) {
         this.channel = channel;
@@ -22,24 +20,20 @@ public class SocketChannelConnection extends ClientConnection {
         } catch (IOException e) {
             throw new IllegalStateException("Channel is closed");
         }
-        isAlive = true;
     }
 
     public SocketChannelConnection(InetSocketAddress endpoint) {
         this.endpoint = endpoint;
-        isAlive = true;
     }
 
     public SocketChannelConnection(String host, int port) {
         this.endpoint = new InetSocketAddress(host, port);
-        isAlive = true;
     }
 
     private boolean con() throws IOException {
         channel = SocketChannel.open();
         try {
             isConnected = channel.connect(endpoint);
-            isAlive = true;
             channel.configureBlocking(false);
         } catch (ConnectException e) {
             if (e.getMessage().contains("Connection refused")) {
@@ -53,23 +47,20 @@ public class SocketChannelConnection extends ClientConnection {
 
     @Override
     public boolean connect() {
-        if (channel != null && channel.isConnected()) {
+        if (channel != null && isConnected) {
             throw new IllegalStateException("Calling the connect method again is not allowed");
         }
         try {
             con();
-        } catch (IOException e) { //todo логировать и убрать if
-            if (autoReconnect)
-                checkConnection();
-            return isConnected;
+        } catch (IOException e) {
+            reconnect();
         }
-        if (autoReconnect)
-            checkConnection();
         return isConnected;
     }
 
-    public boolean reset() {
-        if (this.channel.isConnected()) {
+    @Override
+    public boolean disconnect() {
+        if (this.channel != null) {
             try {
                 this.channel.close();
                 isConnected = false;
@@ -77,44 +68,7 @@ public class SocketChannelConnection extends ClientConnection {
                 System.err.println("I/O channel close exception");
             }
         }
-        return isReset();
-    }
-
-    @Override
-    public boolean disconnect() {
-        reset();
-        isAlive = false;
-        return isReset() && !isAlive;
-    }
-
-    private void checkConnection() {
-        new Timer(true).scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                if (!isAlive) {
-                    this.cancel();
-                    return;
-                }
-                try {
-                    channel.write(ByteBuffer.wrap(new byte[1]));
-                } catch (IOException e) {
-                    try {
-                        if (!isAlive) {
-                            this.cancel();
-                            return;
-                        }
-                        reset();
-                        if (con())
-                            System.out.println("Connected: " + isConnected());
-                        else throw new IOException();
-                    } catch (IOException ioException) {
-                        System.out.println("Connected: " + isConnected() + ". Reconnect...");
-                    }
-                    return;
-                }
-                System.out.println("Connected: " + isConnected());
-            }
-        }, 0, 5000);
+        return !isConnected;
     }
 
     @Override
@@ -122,45 +76,54 @@ public class SocketChannelConnection extends ClientConnection {
         return isConnected;
     }
 
-    public boolean isReset() {
-        return !channel.isConnected() && !isConnected;
-    }
-
     public SocketChannel getChannel() {
         return channel;
     }
 
-    public boolean isAutoReconnect() {
-        return autoReconnect;
-    }
-
-    public boolean isAlive() {
-        return isAlive;
-    }
-
-    public void setAutoReconnect(boolean autoReconnect) {
-        this.autoReconnect = autoReconnect;
-    }
-
     @Override
     public String toString() {
-        return "ClientConnection{" +
+        return "SocketChannelConnection{" +
                 "endpoint=" + endpoint +
                 '}';
     }
 
     @Override
-    public int read(byte[] buffer) throws IOException {
-        return channel.read(ByteBuffer.wrap(buffer));
+    public int read(byte[] buffer) {
+        if (!isConnected)
+            return 0;
+        int bytes = 0;
+        try {
+            bytes = channel.read(ByteBuffer.wrap(buffer));
+        }catch (IOException e){
+            disconnect();
+            reconnect();
+            return 0;
+        }
+        return bytes;
     }
 
     @Override
     public void write(byte[] buffer) throws IOException {
-        channel.write(ByteBuffer.wrap(buffer));
+
     }
 
     @Override
-    public void reconnect() { //todo хуйня реализация
-        setAutoReconnect(true);
+    public void reconnect() {
+        new Timer(true).scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (isConnected) {
+                    this.cancel();
+                    return;
+                }
+                System.out.println("Reconnect...");
+                try {
+                    con();
+                    System.out.println("Connected");
+                } catch (IOException e) {
+                    System.out.println("Connection failed");
+                }
+            }
+        }, 0, 5000);
     }
 }
