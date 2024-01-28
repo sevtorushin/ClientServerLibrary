@@ -52,6 +52,11 @@ public class MessageStorage {
         tempBuffer.put(message);
     }
 
+    public void putTempMessage(byte[] message) {
+        tempBuffer.clear();
+        tempBuffer.put(message);
+    }
+
     public ByteBuffer retrieveTempMessage(){
         tempBuffer.flip();
         return tempBuffer;

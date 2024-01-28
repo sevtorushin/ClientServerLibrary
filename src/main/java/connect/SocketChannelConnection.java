@@ -10,8 +10,6 @@ import java.util.TimerTask;
 
 public class SocketChannelConnection extends ClientConnection {
     private SocketChannel channel;
-    private InetSocketAddress endpoint;
-    private boolean isConnected;
 
     public SocketChannelConnection(SocketChannel channel) {
         this.channel = channel;
@@ -71,11 +69,6 @@ public class SocketChannelConnection extends ClientConnection {
         return !isConnected;
     }
 
-    @Override
-    public boolean isConnected() {
-        return isConnected;
-    }
-
     public SocketChannel getChannel() {
         return channel;
     }
@@ -88,12 +81,13 @@ public class SocketChannelConnection extends ClientConnection {
     }
 
     @Override
-    public int read(byte[] buffer) {
+    public int read(ByteBuffer buffer) {
         if (!isConnected)
             return 0;
-        int bytes = 0;
+        int bytes;
         try {
-            bytes = channel.read(ByteBuffer.wrap(buffer));
+            buffer.clear();
+            bytes = channel.read(buffer);
         }catch (IOException e){
             disconnect();
             reconnect();
@@ -103,17 +97,18 @@ public class SocketChannelConnection extends ClientConnection {
     }
 
     @Override
-    public void write(byte[] buffer) throws IOException {
-
+    public void write(ByteBuffer buffer) throws IOException {
+//todo дописать
     }
 
     @Override
     public void reconnect() {
-        new Timer(true).scheduleAtFixedRate(new TimerTask() {
+        Timer t = new Timer(true);
+                t.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 if (isConnected) {
-                    this.cancel();
+                    t.cancel();
                     return;
                 }
                 System.out.println("Reconnect...");

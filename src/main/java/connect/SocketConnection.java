@@ -3,13 +3,12 @@ package connect;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class SocketConnection extends ClientConnection {
     private Socket socket;
-    private InetSocketAddress endpoint;
-    private boolean isConnected;
 
     public SocketConnection(InetSocketAddress endpoint) {
         this.endpoint = endpoint;
@@ -39,22 +38,18 @@ public class SocketConnection extends ClientConnection {
     }
 
     @Override
-    public boolean isConnected() {
-        return isConnected;
-    }
-
-    @Override
     public void reconnect() {
-        new Timer(true).scheduleAtFixedRate(new TimerTask() {
+        Timer t = new Timer(true);
+        t.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 if (isConnected) {
-                    this.cancel();
+                    t.cancel();
                     return;
                 }
                 System.out.println("Reconnect...");
                 try {
-                    socket = new Socket();
+                    socket = new Socket(); //todo вынести в отдельный метод con()
                     socket.connect(endpoint);
                     isConnected = true;
                     System.out.println("Connected");
@@ -66,12 +61,13 @@ public class SocketConnection extends ClientConnection {
     }
 
     @Override
-    public int read(byte[] buffer) {
+    public int read(ByteBuffer buffer) {
         if (!isConnected)
             return 0;
-        int bytes = 0;
+        int bytes;
         try {
-            bytes = socket.getInputStream().read(buffer);
+            buffer.clear();
+            bytes = socket.getInputStream().read(buffer.array());
         } catch (IOException e) {
             disconnect();
             reconnect();
@@ -81,7 +77,7 @@ public class SocketConnection extends ClientConnection {
     }
 
     @Override
-    public void write(byte[] buffer) throws IOException {
-
+    public void write(ByteBuffer buffer) throws IOException {
+//todo дописать
     }
 }
