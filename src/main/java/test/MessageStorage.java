@@ -62,6 +62,11 @@ public class MessageStorage {
         return tempBuffer;
     }
 
+    public void clear(){
+        cache.clear();
+        tempBuffer.clear();
+    }
+
     public ByteBuffer getTempBuffer() {
         return tempBuffer;
     }

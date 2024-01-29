@@ -53,7 +53,7 @@ public class SocketConnection extends ClientConnection {
                     socket.connect(endpoint);
                     isConnected = true;
                     System.out.println("Connected");
-                } catch (IOException e){
+                } catch (IOException e) {
                     System.out.println("Connection failed");
                 }
             }
@@ -78,6 +78,13 @@ public class SocketConnection extends ClientConnection {
 
     @Override
     public void write(ByteBuffer buffer) throws IOException {
-//todo дописать
+        if (!isConnected)
+            return;
+        try {
+            socket.getOutputStream().write(buffer.array());
+        } catch (IOException e) {
+            disconnect();
+            reconnect();
+        }
     }
 }

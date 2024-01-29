@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.List;
 
-public class ClientTest {
+public class ClientTest implements AutoCloseable{
     private String name;
     private long id;
     private static int clientCount = 0;
@@ -101,6 +101,13 @@ public class ClientTest {
                 ", name='" + name + '\'' +
                 ", id=" + id +
                 '}';
+    }
+
+    @Override
+    public void close() {
+        clientConnection.disconnect();
+        taskManager.removeAllTask();
+        messageStorage.clear();
     }
 
     //----------------------------------------------------------------------

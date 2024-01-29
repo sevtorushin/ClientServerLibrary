@@ -88,7 +88,7 @@ public class SocketChannelConnection extends ClientConnection {
         try {
             buffer.clear();
             bytes = channel.read(buffer);
-        }catch (IOException e){
+        } catch (IOException e) {
             disconnect();
             reconnect();
             return 0;
@@ -97,14 +97,21 @@ public class SocketChannelConnection extends ClientConnection {
     }
 
     @Override
-    public void write(ByteBuffer buffer) throws IOException {
-//todo дописать
+    public void write(ByteBuffer buffer) {
+        if (!isConnected)
+            return;
+        try {
+            channel.write(buffer);
+        } catch (IOException e) {
+            disconnect();
+            reconnect();
+        }
     }
 
     @Override
     public void reconnect() {
         Timer t = new Timer(true);
-                t.scheduleAtFixedRate(new TimerTask() {
+        t.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 if (isConnected) {

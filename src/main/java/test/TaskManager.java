@@ -36,9 +36,9 @@ public class TaskManager implements TaskHandler {
     }
 
     public void handleAllOutgoingMessage(ByteBuffer message) throws Exception {
-        if (message.position() == 0)
-            return;
-        message.flip();
+//        if (message.position() == 0)
+//            return;
+//        message.flip();
         Collection<MessageHandler> values = handlers.values();
         for (MessageHandler handler : values) {
             handler.outgoingMessageHandle(message);
