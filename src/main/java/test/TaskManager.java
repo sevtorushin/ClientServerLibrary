@@ -1,5 +1,7 @@
 package test;
 
+import exceptions.HandleException;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,7 +26,7 @@ public class TaskManager implements TaskHandler {
         handlers.remove(name);
     }
 
-    public void handleAllIncomingMessage(ByteBuffer message) throws Exception {
+    public void handleAllIncomingMessage(ByteBuffer message) throws HandleException {
         if (message.position() == 0)
             return;
         message.flip();
@@ -35,8 +37,8 @@ public class TaskManager implements TaskHandler {
         }
     }
 
-    public void handleAllOutgoingMessage(ByteBuffer message) throws Exception {
-//        if (message.position() == 0)
+    public void handleAllOutgoingMessage(ByteBuffer message) throws HandleException {
+//        if (message.position() == 0) //todo подумой
 //            return;
 //        message.flip();
         Collection<MessageHandler> values = handlers.values();

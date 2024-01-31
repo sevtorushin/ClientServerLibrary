@@ -87,4 +87,9 @@ public class SocketConnection extends ClientConnection {
             reconnect();
         }
     }
+
+    @Override
+    public void close() {
+        disconnect();
+    }
 }

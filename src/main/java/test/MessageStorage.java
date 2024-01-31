@@ -6,6 +6,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class MessageStorage {
     private ByteBuffer tempBuffer = ByteBuffer.allocate(8192);
+    private ByteBuffer emptyBuffer = ByteBuffer.allocate(0);
     private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();
 
     public void saveToCache(ByteBuffer message) {
@@ -69,5 +70,9 @@ public class MessageStorage {
 
     public ByteBuffer getTempBuffer() {
         return tempBuffer;
+    }
+
+    public ByteBuffer getEmptyBuffer() {
+        return emptyBuffer;
     }
 }

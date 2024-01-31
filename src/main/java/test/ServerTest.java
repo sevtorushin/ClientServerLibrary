@@ -1,6 +1,6 @@
 package test;
 
-import clients.another.ClientTest;
+import clients.another.Client;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -46,13 +46,13 @@ public class ServerTest implements Runnable {
         serverSocketChannel.close();
     }
 
-    private ClientTest connectClient(SocketChannel client) {
-        ClientTest clientTest = clientPool.createClient(client);
+    private Client connectClient(SocketChannel client) {
+        Client clientTest = clientPool.createClient(client);
         clientPool.addNewClient(clientTest);
         return clientTest;
     }
 
-    public boolean disconnectClient(ClientTest client) throws IOException {
+    public boolean disconnectClient(Client client) throws IOException {
         if (client == null)
             return false;
         return clientPool.removeClient(client);
@@ -62,7 +62,7 @@ public class ServerTest implements Runnable {
         return clientPool.removeAllClients();
     }
 
-    public List<ClientTest> getAllClients() {
+    public List<Client> getAllClients() {
         return clientPool.getAllClients();
     }
 
