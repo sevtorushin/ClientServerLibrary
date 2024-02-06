@@ -2,19 +2,32 @@ package clients.another;
 
 import connect.ClientConnection;
 import connect.SocketChannelConnection;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
+@ToString(exclude = {"buffer", "emptyBuffer"})
 public class Client implements AutoCloseable {
+    @Getter @Setter
     private String name;
     private final long id;
     private static int clientCount = 0;
+    @Getter
     protected ClientConnection clientConnection;
-    private ByteBuffer buffer = ByteBuffer.allocate(8192);
-    private ByteBuffer emptyBuffer = ByteBuffer.allocate(0);
+    private final ByteBuffer buffer;
+    private final ByteBuffer emptyBuffer;
+    @Getter @Setter
+    private int bufferSize = 8192;
+
+    {
+        this.buffer = ByteBuffer.allocate(bufferSize);
+        this.emptyBuffer = ByteBuffer.allocate(0);
+    }
 
 
     public Client(SocketChannel socketChannel) {
@@ -36,11 +49,19 @@ public class Client implements AutoCloseable {
     }
 
     public void connect() {
-        clientConnection.connect();
+        try {
+            clientConnection.connect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void disconnect() {
-        clientConnection.disconnect();
+        try {
+            clientConnection.disconnect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public boolean isConnected() {
@@ -57,7 +78,11 @@ public class Client implements AutoCloseable {
                 return emptyBuffer;
             }
         } catch (IOException e) {
-            clientConnection.disconnect();
+            try {
+                clientConnection.disconnect();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
             clientConnection.reconnect();
             return emptyBuffer;
         }
@@ -70,34 +95,21 @@ public class Client implements AutoCloseable {
         try {
             clientConnection.write(message);
         } catch (IOException e) {
-            clientConnection.disconnect();
+            try {
+                clientConnection.disconnect();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
             clientConnection.reconnect();
         }
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public ClientConnection getClientConnection() {
-        return clientConnection;
-    }
-
     @Override
-    public String toString() {
-        return "ClientTest{" +
-                ", connection=" + clientConnection +
-                ", name='" + name + '\'' +
-                ", id=" + id +
-                '}';
-    }
-
-    @Override
-    public void close() throws Exception {
-        clientConnection.close();
+    public void close() {
+        try {
+            clientConnection.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

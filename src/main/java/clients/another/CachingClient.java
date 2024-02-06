@@ -1,16 +1,17 @@
 package clients.another;
 
 import exceptions.HandleException;
+import lombok.ToString;
 import test.MessageHandler;
 import test.MessageStorage;
 import test.TaskManager;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.List;
 
+@ToString(callSuper = true)
 public class CachingClient extends Client {
     private TaskManager taskManager;
     private MessageStorage messageStorage;
@@ -33,41 +34,12 @@ public class CachingClient extends Client {
         this.messageStorage = new MessageStorage();
     }
 
-    @Override
-    public ByteBuffer receiveMessage() { //todo дублирование кода
-        if (!isConnected()) {
-            return messageStorage.getEmptyBuffer();
-        }
-        ByteBuffer buffer = messageStorage.getTempBuffer();
-        try {
-            int n = clientConnection.read(buffer);
-            if (n < 1) {
-                return messageStorage.getEmptyBuffer();
-            }
-        } catch (IOException e) {
-            clientConnection.disconnect();
-            clientConnection.reconnect();
-            return messageStorage.getEmptyBuffer();
-        }
-        return buffer.duplicate();
-    }
-
-    @Override
-    public void sendMessage(ByteBuffer message) { //todo подумать над реализацией. Нужен ли тут обработчик или отправлять сразу в сокет
-        if (!isConnected())
-            return;
-        try {
-            taskManager.handleAllOutgoingMessage(message);
-        } catch (HandleException e) {
-            if (e.getCause() instanceof IOException) {
-                clientConnection.disconnect();
-                clientConnection.reconnect();
-            } else e.printStackTrace();
-        }
-    }
-
-    public void handleMessage(ByteBuffer message) throws HandleException {
+    public void handleIncomingMessage(ByteBuffer message) throws HandleException {
         taskManager.handleAllIncomingMessage(message);
+    }
+
+    public void handleOutgoingMessage(ByteBuffer message) throws HandleException {
+        taskManager.handleAllOutgoingMessage(message);
     }
 
     public void addTask(String name, MessageHandler handler) {

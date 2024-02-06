@@ -1,63 +1,49 @@
 package connect;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.util.Timer;
-import java.util.TimerTask;
 
+@ToString(callSuper = true,
+        exclude = {"socket", "reconnectPeriod"})
 public class SocketConnection extends ClientConnection {
     private Socket socket;
+    @Getter
+    @Setter
+    private long reconnectPeriod = 5000;
+
+    public SocketConnection(Socket socket) {
+        this.socket = socket;
+        this.endpoint = (InetSocketAddress) socket.getRemoteSocketAddress();
+    }
 
     public SocketConnection(InetSocketAddress endpoint) {
         this.endpoint = endpoint;
     }
 
-    @Override
-    public boolean connect() {
-        try {
-            socket = new Socket();
-            socket.connect(endpoint);
-            isConnected = true;
-        } catch (IOException e) {
-            reconnect();
-        }
+    public SocketConnection(String host, int port) {
+        this.endpoint = new InetSocketAddress(host, port);
+    }
+
+    protected boolean con() throws IOException {
+        socket = new Socket();
+        socket.connect(endpoint);
+        isConnected = true;
         return isConnected;
     }
 
     @Override
-    public boolean disconnect() {
-        try {
+    public boolean disconnect() throws IOException {
+        if (socket != null) {
             socket.close();
             isConnected = false;
-        } catch (IOException e) {
-            e.printStackTrace();
         }
         return !isConnected();
-    }
-
-    @Override
-    public void reconnect() {
-        Timer t = new Timer(true);
-        t.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                if (isConnected) {
-                    t.cancel();
-                    return;
-                }
-                System.out.println("Reconnect...");
-                try {
-                    socket = new Socket(); //todo вынести в отдельный метод con()
-                    socket.connect(endpoint);
-                    isConnected = true;
-                    System.out.println("Connected");
-                } catch (IOException e) {
-                    System.out.println("Connection failed");
-                }
-            }
-        }, 0, 5000);
     }
 
     @Override
@@ -69,7 +55,11 @@ public class SocketConnection extends ClientConnection {
             buffer.clear();
             bytes = socket.getInputStream().read(buffer.array());
         } catch (IOException e) {
-            disconnect();
+            try {
+                disconnect();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
             reconnect();
             return 0;
         }
@@ -77,19 +67,18 @@ public class SocketConnection extends ClientConnection {
     }
 
     @Override
-    public void write(ByteBuffer buffer) throws IOException {
+    public void write(ByteBuffer buffer) {
         if (!isConnected)
             return;
         try {
             socket.getOutputStream().write(buffer.array());
         } catch (IOException e) {
-            disconnect();
+            try {
+                disconnect();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
             reconnect();
         }
-    }
-
-    @Override
-    public void close() {
-        disconnect();
     }
 }

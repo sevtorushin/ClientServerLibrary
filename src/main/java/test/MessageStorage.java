@@ -1,13 +1,26 @@
 package test;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class MessageStorage {
-    private ByteBuffer tempBuffer = ByteBuffer.allocate(8192);
-    private ByteBuffer emptyBuffer = ByteBuffer.allocate(0);
-    private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();
+    @Getter
+    private final ByteBuffer tempBuffer;
+    @Getter
+    private final ByteBuffer emptyBuffer;
+    private final LinkedBlockingQueue<byte[]> cache;
+    @Getter @Setter
+    private int bufferSize = 8192;
+
+    public MessageStorage() {
+       this.tempBuffer = ByteBuffer.allocate(bufferSize);
+        this.emptyBuffer = ByteBuffer.allocate(0);
+        this.cache = new LinkedBlockingQueue<>();
+    }
 
     public void saveToCache(ByteBuffer message) {
         byte[] data = new byte[message.limit()];
@@ -66,13 +79,5 @@ public class MessageStorage {
     public void clear(){
         cache.clear();
         tempBuffer.clear();
-    }
-
-    public ByteBuffer getTempBuffer() {
-        return tempBuffer;
-    }
-
-    public ByteBuffer getEmptyBuffer() {
-        return emptyBuffer;
     }
 }
