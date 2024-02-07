@@ -3,6 +3,8 @@ package connect;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -47,38 +49,12 @@ public class SocketConnection extends ClientConnection {
     }
 
     @Override
-    public int read(ByteBuffer buffer) {
-        if (!isConnected)
-            return 0;
-        int bytes;
-        try {
-            buffer.clear();
-            bytes = socket.getInputStream().read(buffer.array());
-        } catch (IOException e) {
-            try {
-                disconnect();
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-            }
-            reconnect();
-            return 0;
-        }
-        return bytes;
+    protected int read0(ByteBuffer buffer) throws IOException {
+        return socket.getInputStream().read(buffer.array());
     }
 
     @Override
-    public void write(ByteBuffer buffer) {
-        if (!isConnected)
-            return;
-        try {
-            socket.getOutputStream().write(buffer.array());
-        } catch (IOException e) {
-            try {
-                disconnect();
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-            }
-            reconnect();
-        }
+    protected void write0(ByteBuffer buffer) throws IOException {
+        socket.getOutputStream().write(buffer.array());
     }
 }

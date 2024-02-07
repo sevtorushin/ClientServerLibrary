@@ -5,6 +5,8 @@ import connect.SocketChannelConnection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -13,7 +15,8 @@ import java.nio.channels.SocketChannel;
 
 @ToString(exclude = {"buffer", "emptyBuffer"})
 public class Client implements AutoCloseable {
-    @Getter @Setter
+    @Getter
+    @Setter
     private String name;
     private final long id;
     private static int clientCount = 0;
@@ -21,8 +24,11 @@ public class Client implements AutoCloseable {
     protected ClientConnection clientConnection;
     private final ByteBuffer buffer;
     private final ByteBuffer emptyBuffer;
-    @Getter @Setter
+    @Getter
+    @Setter
     private int bufferSize = 8192;
+
+    private static final Logger log = LogManager.getLogger(Client.class.getSimpleName());
 
     {
         this.buffer = ByteBuffer.allocate(bufferSize);
@@ -34,7 +40,7 @@ public class Client implements AutoCloseable {
         this.clientConnection = new SocketChannelConnection(socketChannel);
         this.name = "";
         this.id = ++clientCount;
-    }
+    }//todo имя для каждого нового клиента
 
     public Client(InetSocketAddress endpoint) {
         this.clientConnection = new SocketChannelConnection(endpoint);
@@ -52,7 +58,8 @@ public class Client implements AutoCloseable {
         try {
             clientConnection.connect();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.warn(String.format("%s:%d connection error",
+                    clientConnection.getEndpoint().getHostString(), clientConnection.getEndpoint().getPort()), e);
         }
     }
 
@@ -60,7 +67,8 @@ public class Client implements AutoCloseable {
         try {
             clientConnection.disconnect();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(String.format("Disconnect error. Maybe channel or socket for endpoint %s is closed",
+                    getClientConnection()), e);
         }
     }
 
@@ -69,39 +77,15 @@ public class Client implements AutoCloseable {
     }
 
     public ByteBuffer receiveMessage() {
-        if (!isConnected()) {
-            return emptyBuffer;
-        }
-        try {
-            int n = clientConnection.read(buffer);
-            if (n < 1) {
-                return emptyBuffer;
-            }
-        } catch (IOException e) {
-            try {
-                clientConnection.disconnect();
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-            }
-            clientConnection.reconnect();
+        int n = clientConnection.read(buffer);
+        if (n < 1) {
             return emptyBuffer;
         }
         return buffer.duplicate();
     }
 
     public void sendMessage(ByteBuffer message) {
-        if (!isConnected())
-            return;
-        try {
-            clientConnection.write(message);
-        } catch (IOException e) {
-            try {
-                clientConnection.disconnect();
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-            }
-            clientConnection.reconnect();
-        }
+        clientConnection.write(message);
     }
 
     @Override
@@ -109,7 +93,8 @@ public class Client implements AutoCloseable {
         try {
             clientConnection.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(String.format("Connection closing error. Channel or socket for endpoint %s closing error",
+                    getClientConnection()), e);
         }
     }
 }

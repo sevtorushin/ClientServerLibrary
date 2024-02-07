@@ -42,43 +42,21 @@ public class SocketChannelConnection extends ClientConnection {
     }
 
     @Override
-    public boolean disconnect() {
+    public boolean disconnect() throws IOException {
         if (this.channel != null) {
-            try {
-                channel.close();
-                isConnected = false;
-            } catch (IOException e) {
-                System.err.println("I/O channel close exception");
-            }
+            channel.close();
+            isConnected = false;
         }
         return !isConnected;
     }
 
     @Override
-    public int read(ByteBuffer buffer) {
-        if (!isConnected)
-            return 0;
-        int bytes;
-        try {
-            buffer.clear();
-            bytes = channel.read(buffer);
-        } catch (IOException e) {
-            disconnect();
-            reconnect();
-            return 0;
-        }
-        return bytes;
+    protected int read0(ByteBuffer buffer) throws IOException {
+        return channel.read(buffer);
     }
 
     @Override
-    public void write(ByteBuffer buffer) {
-        if (!isConnected)
-            return;
-        try {
-            channel.write(buffer);
-        } catch (IOException e) {
-            disconnect();
-            reconnect();
-        }
+    protected void write0(ByteBuffer buffer) throws IOException {
+        channel.write(buffer);
     }
 }

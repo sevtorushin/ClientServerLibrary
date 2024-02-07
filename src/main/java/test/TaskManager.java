@@ -26,6 +26,16 @@ public class TaskManager implements TaskHandler {
         handlers.remove(name);
     }
 
+    @Override
+    public List<String> getALLTask() {
+        return new ArrayList<>(handlers.keySet());
+    }
+
+    @Override
+    public void removeAllTask() {
+        handlers.clear();
+    }
+
     public void handleAllIncomingMessage(ByteBuffer message) throws HandleException {
         if (message.position() == 0)
             return;
@@ -38,23 +48,13 @@ public class TaskManager implements TaskHandler {
     }
 
     public void handleAllOutgoingMessage(ByteBuffer message) throws HandleException {
-//        if (message.position() == 0) //todo подумой
-//            return;
-//        message.flip();
+        if (message.position() == 0)
+            return;
+        message.flip();
         Collection<MessageHandler> values = handlers.values();
         for (MessageHandler handler : values) {
             handler.outgoingMessageHandle(message);
             message.rewind();
         }
-    }
-
-    @Override
-    public List<String> getALLTask() {
-        return new ArrayList<>(handlers.keySet());
-    }
-
-    @Override
-    public void removeAllTask() {
-        handlers.clear();
     }
 }

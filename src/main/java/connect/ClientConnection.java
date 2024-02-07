@@ -1,70 +1,143 @@
 package connect;
 
-import exceptions.ConnectClientException;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.concurrent.locks.ReentrantLock;
 
 @ToString(exclude = {"isConnected", "lock", "reconnectPeriod"})
 public abstract class ClientConnection implements TCPConnection, Reconnectable, Transmitter, AutoCloseable {
     volatile boolean isConnected;
     private final ReentrantLock lock = new ReentrantLock();
+    @Getter
     InetSocketAddress endpoint;
-    @Getter @Setter
+    @Getter
+    @Setter
     private long reconnectPeriod = 5000;
+
+    private static final Logger log = LogManager.getLogger(ClientConnection.class.getSimpleName());
 
     protected abstract boolean con() throws IOException;
 
-    public boolean isConnected(){
+    protected abstract int read0(ByteBuffer buffer) throws IOException;
+
+    protected abstract void write0(ByteBuffer buffer) throws IOException;
+
+    public boolean isConnected() {
         return isConnected;
     }
 
     @Override
     public boolean connect() throws IOException {
         if (isConnected) {
+            log.warn(String.format("Client already connected to endpoint %s:%d",
+                    endpoint.getHostString(), endpoint.getPort()));
             throw new IllegalStateException("Client already connected");
         }
         try {
-            con();
+            if (con()) {
+                log.info(String.format("Connected to server endpoint %s:%d",
+                        endpoint.getHostString(), endpoint.getPort()));
+            } else {
+                log.warn(String.format("Not connected to server endpoint %s:%d",
+                        endpoint.getHostString(), endpoint.getPort()));
+            }
         } catch (IOException e) {
             if (e.getMessage().contains("Connection refused")) {
                 isConnected = false;
-                System.err.println("Not running server on specified endpoint " +
-                        endpoint.getHostString() + ": " + endpoint.getPort());
-            } else throw new IOException(e.getCause());
-            reconnect();
+                log.warn(String.format("Not running server on specified endpoint %s:%d",
+                        endpoint.getHostString(), endpoint.getPort()));
+                reconnect();
+            } else {
+                throw new IOException(e.getCause());
+            }
         }
         return isConnected;
     }
 
     @Override
     public void reconnect() {
-        new Thread(() -> {
+        Thread reconnectThread = new Thread(() -> {
             lock.tryLock();
             while (!isConnected) {
-                System.out.println("Reconnect...");
+                log.info(String.format("Reconnect to server endpoint %s:%d",
+                        endpoint.getHostString(), endpoint.getPort()));
                 try {
-                    con();
-                    System.out.println("Connected");
+                    if (con()) {
+                        log.info(String.format("Connected to server endpoint %s:%d",
+                                endpoint.getHostString(), endpoint.getPort()));
+                    }
                 } catch (IOException e) {
-                    System.out.println("Connection failed");
+                    log.warn(String.format("Connection to server endpoint %s:%d failed",
+                            endpoint.getHostString(), endpoint.getPort()));
                     try {
                         Thread.sleep(reconnectPeriod);
-                    } catch (InterruptedException interruptedException) {
-                        interruptedException.printStackTrace();
+                    } catch (InterruptedException ie) {
+                        log.error("This thread interrupted. Reconnect error");
                     }
                 }
             }
             lock.unlock();
-        }).start();
+        });
+        reconnectThread.setName("ReconnectThread");
+        reconnectThread.setDaemon(true);
+        reconnectThread.start();
+    }
+
+    @Override
+    public int read(ByteBuffer buffer) {
+        if (!isConnected) {
+            log.trace(String.format("Reading impossible for client %s, client is not connected", this));
+            return 0;
+        }
+        int bytes;
+        try {
+            buffer.clear();
+            bytes = read0(buffer);
+            log.trace(String.format("Reading successful for client %s", this));
+        } catch (IOException e) {
+            try {
+                log.warn(String.format("Client %s:%d disconnected", getEndpoint().getHostString(), getEndpoint().getPort()));
+                disconnect();
+            } catch (IOException ioe) {
+                log.error(String.format("Closing of socket error for client %s", this), ioe);
+            }
+            reconnect();
+            return 0;
+        }
+        return bytes;
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        if (!isConnected) {
+            log.trace(String.format("Writing impossible for client %s, client is not connected", this));
+            return;
+        }
+        try {
+            write0(buffer);
+            log.trace(String.format("Writing successful for client %s", this));
+        } catch (IOException e) {
+            try {
+                log.warn(String.format("Client %s:%d disconnected", getEndpoint().getHostString(), getEndpoint().getPort()));
+                disconnect();
+            } catch (IOException ioe) {
+                log.error(String.format("Closing of socket error for client %s", this), ioe);
+            }
+            reconnect();
+        }
     }
 
     @Override
     public void close() throws IOException {
-        disconnect();
+        if (disconnect())
+            log.info(String.format("Disconnect from server endpoint %s:%d",
+                    endpoint.getHostString(), endpoint.getPort()));
     }
 }
