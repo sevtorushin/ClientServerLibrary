@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import service.ReadProperties;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -19,7 +20,12 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
     InetSocketAddress endpoint;
     @Getter
     @Setter
-    private long reconnectPeriod = 5000;
+    private long reconnectPeriod;
+
+    public ClientConnection() {
+        ReadProperties properties = ReadProperties.getInstance();
+        reconnectPeriod = Long.parseLong(properties.getValue("connection.reconnectTime"));
+    }
 
     private static final Logger log = LogManager.getLogger(ClientConnection.class.getSimpleName());
 
@@ -93,14 +99,15 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
     @Override
     public int read(ByteBuffer buffer) {
         if (!isConnected) {
-            log.trace(String.format("Reading impossible for client %s, client is not connected", this));
+            log.trace(String.format("Reading impossible from %s:%d, client is not connected",
+                    endpoint.getHostString(), endpoint.getPort()));
             return 0;
         }
         int bytes;
         try {
             buffer.clear();
             bytes = read0(buffer);
-            log.trace(String.format("Reading successful for client %s", this));
+            log.trace(String.format("Reading successful from %s:%d", endpoint.getHostString(), endpoint.getPort()));
         } catch (IOException e) {
             try {
                 log.warn(String.format("Client %s:%d disconnected", getEndpoint().getHostString(), getEndpoint().getPort()));

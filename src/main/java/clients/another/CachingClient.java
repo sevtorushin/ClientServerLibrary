@@ -2,36 +2,37 @@ package clients.another;
 
 import exceptions.HandleException;
 import lombok.ToString;
-import test.MessageHandler;
-import test.MessageStorage;
-import test.TaskManager;
+import service.CachedMessageStorage;
+import service.MessageHandler;
+import service.TaskManager;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.List;
 
-@ToString(callSuper = true)
+@ToString(callSuper = true,
+exclude = {"taskManager","messageStorage"})
 public class CachingClient extends Client {
     private TaskManager taskManager;
-    private MessageStorage messageStorage;
+    private CachedMessageStorage messageStorage;
 
     public CachingClient(SocketChannel socketChannel) {
         super(socketChannel);
         this.taskManager = new TaskManager();
-        this.messageStorage = new MessageStorage();
+        this.messageStorage = new CachedMessageStorage();
     }
 
     public CachingClient(InetSocketAddress endpoint) {
         super(endpoint);
         this.taskManager = new TaskManager();
-        this.messageStorage = new MessageStorage();
+        this.messageStorage = new CachedMessageStorage();
     }
 
     public CachingClient(String host, int port) {
         super(host, port);
         this.taskManager = new TaskManager();
-        this.messageStorage = new MessageStorage();
+        this.messageStorage = new CachedMessageStorage();
     }
 
     public void handleIncomingMessage(ByteBuffer message) throws HandleException {

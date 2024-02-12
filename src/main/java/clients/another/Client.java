@@ -7,13 +7,13 @@ import lombok.Setter;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import service.MessageStorage;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-@ToString(exclude = {"buffer", "emptyBuffer"})
 public class Client implements AutoCloseable {
     @Getter
     @Setter
@@ -22,35 +22,29 @@ public class Client implements AutoCloseable {
     private static int clientCount = 0;
     @Getter
     protected ClientConnection clientConnection;
-    private final ByteBuffer buffer;
-    private final ByteBuffer emptyBuffer;
-    @Getter
-    @Setter
-    private int bufferSize = 8192;
+    @ToString.Exclude
+    private final MessageStorage storage;
 
     private static final Logger log = LogManager.getLogger(Client.class.getSimpleName());
 
-    {
-        this.buffer = ByteBuffer.allocate(bufferSize);
-        this.emptyBuffer = ByteBuffer.allocate(0);
-    }
-
-
     public Client(SocketChannel socketChannel) {
         this.clientConnection = new SocketChannelConnection(socketChannel);
-        this.name = "";
+        this.storage = new MessageStorage();
+        this.name = getClass().getSimpleName();
         this.id = ++clientCount;
-    }//todo имя для каждого нового клиента
+    }
 
     public Client(InetSocketAddress endpoint) {
         this.clientConnection = new SocketChannelConnection(endpoint);
-        this.name = "";
+        this.storage = new MessageStorage();
+        this.name = getClass().getSimpleName();
         this.id = ++clientCount;
     }
 
     public Client(String host, int port) {
         this.clientConnection = new SocketChannelConnection(host, port);
-        this.name = "";
+        this.storage = new MessageStorage();
+        this.name = getClass().getSimpleName();
         this.id = ++clientCount;
     }
 
@@ -77,11 +71,14 @@ public class Client implements AutoCloseable {
     }
 
     public ByteBuffer receiveMessage() {
-        int n = clientConnection.read(buffer);
+        ByteBuffer storageTempBuffer = storage.getTempBuffer();
+        int n = clientConnection.read(storageTempBuffer);
+        storageTempBuffer.flip();
         if (n < 1) {
-            return emptyBuffer;
+            return storage.getEmptyBuffer();
         }
-        return buffer.duplicate();
+
+        return storage.retrieveFromStorage();
     }
 
     public void sendMessage(ByteBuffer message) {

@@ -1,6 +1,6 @@
 package clients.simple;
 
-import entity.Cached;
+import service.Cached;
 import utils.ArrayUtils;
 
 import java.io.IOException;
@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
-public class SimpleClient implements Cached {
+public class SimpleClient implements Cached<byte[]> {
     private SocketChannel channel;
     private final InetSocketAddress endpoint;
     private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();

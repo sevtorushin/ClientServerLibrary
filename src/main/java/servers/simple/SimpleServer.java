@@ -1,6 +1,6 @@
 package servers.simple;
 
-import entity.Cached;
+import service.Cached;
 import exceptions.ConnectClientException;
 import utils.ArrayUtils;
 
@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
-public class SimpleServer implements Runnable, Cached {
+public class SimpleServer implements Runnable, Cached<byte[]> {
     private final ServerSocketChannel serverSocketChannel;
     private final InetSocketAddress endpoint;
     private final Selector selector;

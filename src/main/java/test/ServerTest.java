@@ -1,6 +1,7 @@
 package test;
 
 import clients.another.Client;
+import service.ClientPool;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
