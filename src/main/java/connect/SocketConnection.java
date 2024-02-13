@@ -1,23 +1,16 @@
 package connect;
 
-import lombok.Getter;
-import lombok.Setter;
 import lombok.ToString;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 
-@ToString(callSuper = true,
-        exclude = {"socket", "reconnectPeriod"})
+@ToString(callSuper = true)
 public class SocketConnection extends ClientConnection {
+    @ToString.Exclude
     private Socket socket;
-    @Getter
-    @Setter
-    private long reconnectPeriod = 5000;
 
     public SocketConnection(Socket socket) {
         this.socket = socket;

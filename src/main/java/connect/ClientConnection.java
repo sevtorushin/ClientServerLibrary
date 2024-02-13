@@ -13,7 +13,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.locks.ReentrantLock;
 
 @ToString(exclude = {"isConnected", "lock", "reconnectPeriod"})
-public abstract class ClientConnection implements TCPConnection, Reconnectable, Transmitter, AutoCloseable {
+public abstract class ClientConnection implements TCPConnection, Reconnectable, Transmitter<ByteBuffer>, AutoCloseable {
     volatile boolean isConnected;
     private final ReentrantLock lock = new ReentrantLock();
     @Getter

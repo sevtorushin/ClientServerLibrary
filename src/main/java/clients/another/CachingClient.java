@@ -2,9 +2,12 @@ package clients.another;
 
 import exceptions.HandleException;
 import lombok.ToString;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import service.CachedMessageStorage;
+import service.HandlerManager;
 import service.MessageHandler;
-import service.TaskManager;
+import service.ByteBufferHandlerManager;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -12,51 +15,52 @@ import java.nio.channels.SocketChannel;
 import java.util.List;
 
 @ToString(callSuper = true,
-exclude = {"taskManager","messageStorage"})
+exclude = {"handlerManager","messageStorage"})
 public class CachingClient extends Client {
-    private TaskManager taskManager;
-    private CachedMessageStorage messageStorage;
+    private final HandlerManager<String, ByteBuffer> handlerManager;
+    private final CachedMessageStorage messageStorage;
+
+    private static final Logger log = LogManager.getLogger(CachingClient.class.getSimpleName());
 
     public CachingClient(SocketChannel socketChannel) {
         super(socketChannel);
-        this.taskManager = new TaskManager();
+        this.handlerManager = new ByteBufferHandlerManager<>();
         this.messageStorage = new CachedMessageStorage();
     }
 
     public CachingClient(InetSocketAddress endpoint) {
         super(endpoint);
-        this.taskManager = new TaskManager();
+        this.handlerManager = new ByteBufferHandlerManager<>();
         this.messageStorage = new CachedMessageStorage();
     }
 
     public CachingClient(String host, int port) {
         super(host, port);
-        this.taskManager = new TaskManager();
+        this.handlerManager = new ByteBufferHandlerManager<>();
         this.messageStorage = new CachedMessageStorage();
     }
 
-    public void handleIncomingMessage(ByteBuffer message) throws HandleException {
-        taskManager.handleAllIncomingMessage(message);
+    public void handleMessage(ByteBuffer message) throws HandleException {
+        handlerManager.handle(message);
     }
 
-    public void handleOutgoingMessage(ByteBuffer message) throws HandleException {
-        taskManager.handleAllOutgoingMessage(message);
+    public void addHandler(String name, MessageHandler<ByteBuffer> handler) {
+        this.handlerManager.addHandler(name, handler);
+        log.debug(String.format("Task \"%s\" added to %s", name, this));
     }
 
-    public void addTask(String name, MessageHandler handler) {
-        this.taskManager.addTask(name, handler);
+    public void removeHandler(String name) {
+        this.handlerManager.removeHandler(name);
+        log.debug(String.format("Task \"%s\" removed from %s", name, this));
     }
 
-    public void removeTask(String name) {
-        this.taskManager.removeTask(name);
+    public List<String> getALLHandlers() {
+        return handlerManager.getALLHandlers();
     }
 
-    public List<String> getALLTask() {
-        return taskManager.getALLTask();
-    }
-
-    public void removeAllTask() {
-        taskManager.removeAllTask();
+    public void removeAllHandlers() {
+        handlerManager.removeAllHandlers();
+        log.debug(String.format("All tasks removed from %s", this));
     }
 
     public void saveToCache(ByteBuffer message) {

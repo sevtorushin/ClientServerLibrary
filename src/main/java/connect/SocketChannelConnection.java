@@ -1,7 +1,5 @@
 package connect;
 
-import lombok.Getter;
-import lombok.Setter;
 import lombok.ToString;
 
 import java.io.IOException;
@@ -9,13 +7,10 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-@ToString(callSuper = true,
-        exclude = {"channel", "reconnectPeriod"})
+@ToString(callSuper = true)
 public class SocketChannelConnection extends ClientConnection {
+    @ToString.Exclude
     private SocketChannel channel;
-    @Getter
-    @Setter
-    private long reconnectPeriod = 5000;
 
     public SocketChannelConnection(SocketChannel channel) {
         this.channel = channel;

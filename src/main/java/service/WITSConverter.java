@@ -14,7 +14,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 
-public class WITSConverter implements Convertable<WITSPackage> {
+public class WITSConverter implements Convertable<WITSPackage, byte[]> {
     private static final Logger log = LogManager.getLogger(WITSConverter.class.getSimpleName());
 
     public WITSPackage convert(byte[] data, Class<? extends WITSPackage> clazz) throws BuildObjectException {

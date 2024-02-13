@@ -2,11 +2,6 @@ package service;
 
 import exceptions.HandleException;
 
-import java.nio.ByteBuffer;
-
-public interface MessageHandler {
-
-    void incomingMessageHandle(ByteBuffer message)  throws HandleException;
-
-    void outgoingMessageHandle(ByteBuffer message) throws HandleException;
+public interface MessageHandler<T> {
+    void handleMessage(T message)  throws HandleException;
 }

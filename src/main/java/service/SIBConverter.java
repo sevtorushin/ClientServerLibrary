@@ -7,7 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import utils.ArrayUtils;
 
-public class SIBConverter implements Convertable<SIBParameter> {
+public class SIBConverter implements Convertable<SIBParameter, byte[]> {
     private static final Logger log = LogManager.getLogger(SIBConverter.class.getSimpleName());
 
     private String getName(int bytePerformance) {

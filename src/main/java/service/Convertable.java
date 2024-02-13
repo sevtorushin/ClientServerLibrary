@@ -2,6 +2,6 @@ package service;
 
 import exceptions.BuildObjectException;
 
-public interface Convertable<T> {
-    T convert(byte[] data, Class<? extends T> clazz) throws BuildObjectException;
+public interface Convertable<T, U> {
+    T convert(U data, Class<? extends T> clazz) throws BuildObjectException;
 }
