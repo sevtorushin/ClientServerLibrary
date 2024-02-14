@@ -30,6 +30,10 @@ public class SocketChannelConnection extends ClientConnection {
     }
 
     protected boolean con() throws IOException {
+        if (channel!=null && channel.isConnected()) {
+            isConnected = true;
+            return isConnected;
+        }
         channel = SocketChannel.open();
         isConnected = channel.connect(endpoint);
         channel.configureBlocking(false);

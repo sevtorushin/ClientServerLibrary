@@ -14,6 +14,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
+@ToString
 public class Client implements AutoCloseable {
     @Getter
     @Setter
@@ -48,22 +49,24 @@ public class Client implements AutoCloseable {
         this.id = ++clientCount;
     }
 
-    public void connect() {
+    public boolean connect() {
         try {
-            clientConnection.connect();
+            return clientConnection.connect();
         } catch (IOException e) {
             log.warn(String.format("%s:%d connection error",
                     clientConnection.getEndpoint().getHostString(), clientConnection.getEndpoint().getPort()), e);
         }
+        return false;
     }
 
-    public void disconnect() {
+    public boolean disconnect() {
         try {
-            clientConnection.disconnect();
+            return clientConnection.disconnect();
         } catch (IOException e) {
             log.error(String.format("Disconnect error. Maybe channel or socket for endpoint %s is closed",
                     getClientConnection()), e);
         }
+        return false;
     }
 
     public boolean isConnected() {

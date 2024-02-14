@@ -1,4 +1,4 @@
-package test;
+package servers.another;
 
 import clients.another.Client;
 import service.ClientPool;
@@ -28,9 +28,11 @@ public class ServerTest implements Runnable {
             try {
                 SocketChannel clientSocket = serverSocketChannel.accept();
                 if (clientSocket != null) {
-                    connectClient(clientSocket);
+                    Client client = connectClient(clientSocket);
+                    System.out.println(client);
                 }
                 Thread.sleep(500);
+                clientPool.getAllClients().forEach(client -> System.out.println(client.isConnected()));
             } catch (InterruptedException | IOException e) {
                 e.printStackTrace();
             }
@@ -47,19 +49,20 @@ public class ServerTest implements Runnable {
         serverSocketChannel.close();
     }
 
-    private Client connectClient(SocketChannel client) {
-        Client clientTest = clientPool.createClient(client);
-        clientPool.addNewClient(clientTest);
+    private Client connectClient(SocketChannel clientSocket) {
+        Client clientTest = clientPool.createClient(clientSocket);
+        if (clientPool.addNewClient(clientTest))
+            clientTest.connect();
         return clientTest;
     }
 
-    public boolean disconnectClient(Client client) throws IOException {
+    public boolean disconnectClient(Client client) {
         if (client == null)
             return false;
         return clientPool.removeClient(client);
     }
 
-    public boolean disconnectAllClients() throws IOException {
+    public boolean disconnectAllClients() {
         return clientPool.removeAllClients();
     }
 

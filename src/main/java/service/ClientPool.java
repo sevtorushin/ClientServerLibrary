@@ -2,7 +2,6 @@ package service;
 
 import clients.another.Client;
 
-import java.io.IOException;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,34 +12,42 @@ public class ClientPool {
     private int DEFAULT_SOCKET_POOL_SIZE;
 
     public ClientPool() {
-        this.clientPool = new LinkedBlockingQueue<>();
-        this.DEFAULT_SOCKET_POOL_SIZE = 10;
+        this.DEFAULT_SOCKET_POOL_SIZE = 1;
+        this.clientPool = new LinkedBlockingQueue<>(DEFAULT_SOCKET_POOL_SIZE);
     }
 
-    public boolean addNewClient(Client client){
+    public ClientPool(int DEFAULT_SOCKET_POOL_SIZE) {
+        this.DEFAULT_SOCKET_POOL_SIZE = DEFAULT_SOCKET_POOL_SIZE;
+        this.clientPool = new LinkedBlockingQueue<>(DEFAULT_SOCKET_POOL_SIZE);
+    }
+
+    public boolean addNewClient(Client client) {
         return clientPool.offer(client);
     }
 
-    public boolean removeClient(Client client) throws IOException {
-        client.disconnect();
-        return clientPool.remove(client);
+    public boolean removeClient(Client client) {
+        if (client.disconnect())
+            return clientPool.remove(client);
+        else {
+            System.err.println(String.format("Client %s disconnect error", client));
+            return false;
+        }
     }
 
-    public boolean removeAllClients() throws IOException {
+    public boolean removeAllClients() {
         for (Client client : clientPool) {
-            client.disconnect();
-            clientPool.remove(client);
+            if (client.disconnect())
+                clientPool.remove(client);
+            else{
+                System.err.println(String.format("Client %s disconnect error", client));
+            }
         }
         return clientPool.isEmpty();
     }
 
-    public List<Client> getAllClients(){
+    public List<Client> getAllClients() {
         return new ArrayList<>(clientPool);
     }
-
-
-
-
 
 
     public Client createClient(SocketChannel clientSocket) {
