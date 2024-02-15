@@ -12,7 +12,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.concurrent.locks.ReentrantLock;
 
-@ToString(exclude = {"isConnected", "lock", "reconnectPeriod"})
+@ToString(exclude = {"isConnected", "lock", "reconnectPeriod", "reconnectionMode"})
 public abstract class ClientConnection implements TCPConnection, Reconnectable, Transmitter<ByteBuffer>, AutoCloseable {
     volatile boolean isConnected;
     private final ReentrantLock lock = new ReentrantLock();
@@ -21,10 +21,19 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
     @Getter
     @Setter
     private long reconnectPeriod;
+    @Getter
+    @Setter
+    private boolean reconnectionMode;
 
     public ClientConnection() {
         ReadProperties properties = ReadProperties.getInstance();
-        reconnectPeriod = Long.parseLong(properties.getValue("connection.reconnectTime"));
+        reconnectPeriod = Long.parseLong(properties.getValue("connection.reconnectPeriod"));
+    }
+
+    public ClientConnection(boolean reconnectionMode) {
+        ReadProperties properties = ReadProperties.getInstance();
+        reconnectPeriod = Long.parseLong(properties.getValue("connection.reconnectPeriod"));
+        this.reconnectionMode = reconnectionMode;
     }
 
     private static final Logger log = LogManager.getLogger(ClientConnection.class.getSimpleName());
@@ -69,6 +78,8 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
 
     @Override
     public void reconnect() {
+        if (!reconnectionMode)
+            return;
         Thread reconnectThread = new Thread(() -> {
             lock.tryLock();
             while (!isConnected) {
