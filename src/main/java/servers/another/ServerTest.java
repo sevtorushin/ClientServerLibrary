@@ -1,10 +1,12 @@
 package servers.another;
 
 import clients.another.Client;
+import service.ClientManager;
 import service.ClientPool;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.List;
@@ -12,14 +14,14 @@ import java.util.List;
 public class ServerTest implements Runnable {
 
     private final ServerSocketChannel serverSocketChannel;
-    private ClientPool clientPool;
+    private final ClientManager clientManager;
     private boolean stopped;
 
     public ServerTest(int port) throws IOException {
         this.serverSocketChannel = ServerSocketChannel.open();
         this.serverSocketChannel.bind(new InetSocketAddress(port));
         this.serverSocketChannel.configureBlocking(false);
-        this.clientPool = new ClientPool();
+        this.clientManager = new ClientManager();
     }
 
     @Override
@@ -32,11 +34,22 @@ public class ServerTest implements Runnable {
                     System.out.println(client);
                 }
                 Thread.sleep(500);
-                clientPool.getAllClients().forEach(client -> System.out.println(client.isConnected()));
+                checkAliveSocket();
+                clientManager.getAllClients().forEach(client -> System.out.println(client.isConnected()));
             } catch (InterruptedException | IOException e) {
                 e.printStackTrace();
             }
         }
+    }
+
+    private void checkAliveSocket() {
+        getAllClients().forEach(client -> {
+            if(!client.isConnected())
+                clientManager.removeClient(client);
+            else {
+                client.sendMessage(ByteBuffer.wrap(new byte[]{0}));
+            }
+        });
     }
 
     public void start() {
@@ -50,8 +63,8 @@ public class ServerTest implements Runnable {
     }
 
     private Client connectClient(SocketChannel clientSocket) {
-        Client clientTest = clientPool.createClient(clientSocket);
-        if (clientPool.addNewClient(clientTest))
+        Client clientTest = clientManager.createClient(clientSocket);
+        if (clientManager.addNewClient(clientTest))
             clientTest.connect();
         return clientTest;
     }
@@ -59,15 +72,15 @@ public class ServerTest implements Runnable {
     public boolean disconnectClient(Client client) {
         if (client == null)
             return false;
-        return clientPool.removeClient(client);
+        return clientManager.removeClient(client);
     }
 
     public boolean disconnectAllClients() {
-        return clientPool.removeAllClients();
+        return clientManager.removeAllClients();
     }
 
     public List<Client> getAllClients() {
-        return clientPool.getAllClients();
+        return clientManager.getAllClients();
     }
 
     public boolean isStopped() {
