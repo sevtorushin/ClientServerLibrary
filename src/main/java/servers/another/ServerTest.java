@@ -1,6 +1,8 @@
 package servers.another;
 
+import clients.another.CachingClient;
 import clients.another.Client;
+import lombok.Getter;
 import service.ClientManager;
 import service.ClientPool;
 
@@ -14,6 +16,7 @@ import java.util.List;
 public class ServerTest implements Runnable {
 
     private final ServerSocketChannel serverSocketChannel;
+    @Getter
     private final ClientManager clientManager;
     private boolean stopped;
 
@@ -63,7 +66,7 @@ public class ServerTest implements Runnable {
     }
 
     private Client connectClient(SocketChannel clientSocket) {
-        Client clientTest = clientManager.createClient(clientSocket);
+        Client clientTest = clientManager.createClient(clientSocket, CachingClient.class);
         if (clientManager.addNewClient(clientTest))
             clientTest.connect();
         return clientTest;

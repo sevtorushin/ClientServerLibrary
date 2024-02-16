@@ -49,11 +49,6 @@ public class ClientPool {
         return new ArrayList<>(clientPool);
     }
 
-
-    public Client createClient(SocketChannel clientSocket) {
-        return new Client(clientSocket);
-    }
-
     public Client getClient(int port){
         return null;
     }

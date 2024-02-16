@@ -2,14 +2,21 @@ package service;
 
 import clients.another.Client;
 
+import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ClientManager { //todo добавить конструкторы
-    private ClientPool clientPool;
-    private Map<Client, HandlerManager<String, ByteBuffer>> clientsTasks;
+    private final ClientPool clientPool;
+    private final Map<Client, HandlerManager<String, ByteBuffer>> clientsTasks;
+
+    public ClientManager() {
+        this.clientPool = new ClientPool();
+        this.clientsTasks = new HashMap<>();
+    }
 
     public boolean addNewClient(Client client) {
         if (clientPool.addNewClient(client)) {
@@ -36,16 +43,24 @@ public class ClientManager { //todo добавить конструкторы
         return clientPool.getAllClients();
     }
 
-
-    public Client createClient(SocketChannel clientSocket) {
-        return clientPool.createClient(clientSocket);
+    public Client createClient(SocketChannel clientSocket, Class<? extends Client> clientClass) {
+        Client client = null;
+        try {
+            client = clientClass.getConstructor(SocketChannel.class).newInstance(clientSocket);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+        return client;
     }
 
     //--------------------------------------------------------------------
 
-    public Client getClient(int port){
+    public Client getClient(int port) {
         return null;
     }
 
-    //todo добавить equals&hashCode для Client
+    public void addHandlerForClient(Client client, MessageHandler<ByteBuffer> handler) {
+    }
+
+
 }
