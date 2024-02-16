@@ -1,6 +1,7 @@
 package clients.another;
 
 import exceptions.HandleException;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,6 +17,8 @@ import java.util.List;
 
 @ToString(callSuper = true,
 exclude = {"handlerManager","messageStorage"})
+@EqualsAndHashCode(callSuper = true,
+        exclude = {"handlerManager","messageStorage"})
 public class CachingClient extends Client {
     private final HandlerManager<String, ByteBuffer> handlerManager;
     private final CachedMessageStorage messageStorage;

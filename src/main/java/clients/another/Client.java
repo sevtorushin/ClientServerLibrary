@@ -2,6 +2,7 @@ package clients.another;
 
 import connect.ClientConnection;
 import connect.SocketChannelConnection;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -14,7 +15,8 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-@ToString
+@ToString(exclude = {"storage"})
+@EqualsAndHashCode(exclude = {"storage"})
 public class Client implements AutoCloseable {
     @Getter
     @Setter
@@ -23,7 +25,6 @@ public class Client implements AutoCloseable {
     private static int clientCount = 0;
     @Getter
     protected ClientConnection clientConnection;
-    @ToString.Exclude
     private final MessageStorage storage;
 
     private static final Logger log = LogManager.getLogger(Client.class.getSimpleName());
