@@ -50,4 +50,9 @@ public class SocketConnection extends ClientConnection {
     protected void write0(ByteBuffer buffer) throws IOException {
         socket.getOutputStream().write(buffer.array());
     }
+
+    @Override
+    public int getLocalPort(){
+        return socket.getLocalPort();
+    }
 }

@@ -44,6 +44,8 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
 
     protected abstract void write0(ByteBuffer buffer) throws IOException;
 
+    public abstract int getLocalPort();
+
     public boolean isConnected() {
         return isConnected;
     }

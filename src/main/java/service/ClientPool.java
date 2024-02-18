@@ -12,7 +12,7 @@ public class ClientPool {
     private int DEFAULT_SOCKET_POOL_SIZE;
 
     public ClientPool() {
-        this.DEFAULT_SOCKET_POOL_SIZE = 1;
+        this.DEFAULT_SOCKET_POOL_SIZE = 2;
         this.clientPool = new LinkedBlockingQueue<>(DEFAULT_SOCKET_POOL_SIZE);
     }
 

@@ -58,4 +58,9 @@ public class SocketChannelConnection extends ClientConnection {
     protected void write0(ByteBuffer buffer) throws IOException {
         channel.write(buffer);
     }
+
+    @Override
+    public int getLocalPort(){
+        return channel.socket().getLocalPort();
+    }
 }

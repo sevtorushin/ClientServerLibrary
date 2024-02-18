@@ -17,13 +17,19 @@ public class ByteBufferHandlerManager<N> implements HandlerManager<N, ByteBuffer
     }
 
     @Override
-    public void addHandler(N identifier, MessageHandler<ByteBuffer> handler) {
-        this.handlers.put(identifier, handler);
+    public boolean addHandler(N identifier, MessageHandler<ByteBuffer> handler) {
+        if (handlers.containsKey(identifier))
+            return false;
+        else {
+            this.handlers.put(identifier, handler);
+            return true;
+        }
     }
 
     @Override
-    public void removeHandler(N identifier) {
-        handlers.remove(identifier);
+    public boolean removeHandler(N identifier) {
+        MessageHandler<ByteBuffer> handler = handlers.remove(identifier);
+        return handler != null;
     }
 
     @Override
@@ -32,8 +38,9 @@ public class ByteBufferHandlerManager<N> implements HandlerManager<N, ByteBuffer
     }
 
     @Override
-    public void removeAllHandlers() {
+    public boolean removeAllHandlers() {
         handlers.clear();
+        return true;
     }
 
     @Override
