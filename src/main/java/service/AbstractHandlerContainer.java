@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public abstract class AbstractHandlerContainer<N, T> implements HandlerManager<N, T>{
+public abstract class AbstractHandlerContainer<N, T> implements HandlersContainer<N, T> {
     protected final Map<N, MessageHandler<T>> handlers;
 
     protected AbstractHandlerContainer() {

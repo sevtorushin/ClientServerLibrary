@@ -1,6 +1,7 @@
 package servers.another;
 
 import clients.another.Client;
+import entity.Net;
 import lombok.Getter;
 import service.ClientManager;
 
@@ -11,14 +12,14 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.List;
 
-public class ServerTest implements Runnable {
+public class Server implements Runnable, Net {
 
     private final ServerSocketChannel serverSocketChannel;
     @Getter
     private final ClientManager clientManager;
     private boolean stopped;
 
-    public ServerTest(int port) throws IOException {
+    public Server(int port) throws IOException {
         this.serverSocketChannel = ServerSocketChannel.open();
         this.serverSocketChannel.bind(new InetSocketAddress(port));
         this.serverSocketChannel.configureBlocking(false);
@@ -86,5 +87,9 @@ public class ServerTest implements Runnable {
 
     public boolean isStopped() {
         return stopped;
+    }
+
+    public int getLocalPort(){
+        return serverSocketChannel.socket().getLocalPort();
     }
 }

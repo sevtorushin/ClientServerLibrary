@@ -12,7 +12,7 @@ import java.util.NoSuchElementException;
 
 public class ClientManager {
     private final ClientPool clientPool;
-    private final Map<Client, HandlerManager<String, ByteBuffer>> clientsTasks;
+    private final Map<Client, HandlersContainer<String, ByteBuffer>> clientsTasks;
 
     public ClientManager() {
         this.clientPool = new ClientPool();
@@ -20,28 +20,28 @@ public class ClientManager {
     }
 
     public boolean addNewClient(Client client) {
-        if (clientPool.addNewClient(client)) {
+        if (clientPool.addNew(client)) {
             clientsTasks.put(client, new ByteBufferHandlerContainer<>());
             return true;
         } else return false;
     }
 
     public boolean removeClient(Client client) {
-        if (clientPool.removeClient(client)) {
+        if (clientPool.remove(client)) {
             clientsTasks.remove(client);
             return true;
         } else return false;
     }
 
     public boolean removeAllClients() {
-        if (clientPool.removeAllClients()) {
+        if (clientPool.removeAll()) {
             clientsTasks.clear();
             return true;
         } else return false;
     }
 
     public List<Client> getAllClients() {
-        return clientPool.getAllClients();
+        return clientPool.getAll();
     }
 
     public Client createClient(SocketChannel clientSocket, Class<? extends Client> clientClass) {
@@ -65,17 +65,17 @@ public class ClientManager {
     }
 
     public Client getClient(int localPort) {
-        return clientPool.getClient(localPort);
+        return clientPool.get(localPort);
     }
 
     //---------------------------------------------------------------
 
-    public HandlerManager<String, ByteBuffer> getHandlerManager(Client client) {
+    public HandlersContainer<String, ByteBuffer> getHandlerManager(Client client) {
         return clientsTasks.get(client);
     }
 
     public boolean addHandler(Client client, String taskIdentifier, MessageHandler<ByteBuffer> handler) {
-        HandlerManager<String, ByteBuffer> manager = clientsTasks.get(client);
+        HandlersContainer<String, ByteBuffer> manager = clientsTasks.get(client);
         if (manager != null) {
             boolean isSuccess = manager.addHandler(taskIdentifier, handler);
             if (isSuccess)
@@ -88,7 +88,7 @@ public class ClientManager {
     }
 
     public boolean removeHandler(Client client, String taskIdentifier) {
-        HandlerManager<String, ByteBuffer> manager = getHandlerManager(client);
+        HandlersContainer<String, ByteBuffer> manager = getHandlerManager(client);
         if (manager != null) {
             boolean isSuccess = manager.removeHandler(taskIdentifier);
             if (isSuccess)
@@ -101,14 +101,14 @@ public class ClientManager {
     }
 
     public void removeAllHandlers(Client client) {
-        HandlerManager<String, ByteBuffer> manager = getHandlerManager(client);
+        HandlersContainer<String, ByteBuffer> manager = getHandlerManager(client);
         if (manager != null) {
             manager.removeAllHandlers();
         } else throw new NoSuchElementException("Specified client is missed");
     }
 
     public List<String> getAllHandlers(Client client) {
-        HandlerManager<String, ByteBuffer> manager = getHandlerManager(client);
+        HandlersContainer<String, ByteBuffer> manager = getHandlerManager(client);
         if (manager != null) {
             return manager.getALLHandlers();
         } else throw new NoSuchElementException("Specified client is missed");

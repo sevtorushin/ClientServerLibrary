@@ -2,6 +2,7 @@ package clients.another;
 
 import connect.ClientConnection;
 import connect.SocketChannelConnection;
+import entity.Net;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,7 +18,7 @@ import java.nio.channels.SocketChannel;
 
 @ToString(exclude = {"storage"})
 @EqualsAndHashCode(exclude = {"storage"})
-public class Client implements AutoCloseable {
+public class Client implements AutoCloseable, Net {
     @Getter
     @Setter
     private String name;

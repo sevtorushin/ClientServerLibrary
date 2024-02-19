@@ -4,7 +4,7 @@ import exceptions.HandleException;
 
 import java.util.List;
 
-public interface HandlerManager<N, T> {
+public interface HandlersContainer<N, T> {
     boolean addHandler(N identifier, MessageHandler<T> handler);
     boolean removeHandler(N identifier);
     MessageHandler<T> getHandler(N identifier);
