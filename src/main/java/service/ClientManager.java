@@ -5,7 +5,6 @@ import clients.another.Client;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.rmi.NoSuchObjectException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,10 +65,7 @@ public class ClientManager {
     }
 
     public Client getClient(int localPort) {
-        return clientPool.getAllClients().stream()
-                .filter(client -> client.getClientConnection().getLocalPort() == localPort)
-                .findFirst()
-                .orElse(null);
+        return clientPool.getClient(localPort);
     }
 
     //---------------------------------------------------------------

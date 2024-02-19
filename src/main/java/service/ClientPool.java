@@ -12,7 +12,7 @@ public class ClientPool {
     private int DEFAULT_SOCKET_POOL_SIZE;
 
     public ClientPool() {
-        this.DEFAULT_SOCKET_POOL_SIZE = 2;
+        this.DEFAULT_SOCKET_POOL_SIZE = 10;
         this.clientPool = new LinkedBlockingQueue<>(DEFAULT_SOCKET_POOL_SIZE);
     }
 
@@ -49,7 +49,10 @@ public class ClientPool {
         return new ArrayList<>(clientPool);
     }
 
-    public Client getClient(int port){
-        return null;
+    public Client getClient(int localPort){
+        return clientPool.stream()
+                .filter(client -> client.getClientConnection().getLocalPort() == localPort)
+                .findFirst()
+                .orElse(null);
     }
 }
