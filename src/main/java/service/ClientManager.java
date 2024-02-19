@@ -21,7 +21,7 @@ public class ClientManager {
 
     public boolean addNewClient(Client client) {
         if (clientPool.addNewClient(client)) {
-            clientsTasks.put(client, new ByteBufferHandlerManager<>());
+            clientsTasks.put(client, new ByteBufferHandlerContainer<>());
             return true;
         } else return false;
     }
