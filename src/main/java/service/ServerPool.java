@@ -4,7 +4,7 @@ import servers.another.Server;
 
 import java.io.IOException;
 
-public class ServerPool extends AbstractNetEntityPool<Server>{
+public class ServerPool extends AbstractNetEntityPool<Integer, Server>{
 
     @Override
     public boolean finalizeEntity(Server server) {
@@ -17,7 +17,7 @@ public class ServerPool extends AbstractNetEntityPool<Server>{
     }
 
     @Override
-    public int getId(Server server) {
+    public Integer getId(Server server) {
         return server.getLocalPort();
     }
 }

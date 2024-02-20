@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public abstract class AbstractNetEntityPool<E extends Net> implements Container<E>{
+public abstract class AbstractNetEntityPool<I, E extends Net> implements Container<I, E>{
     protected final LinkedBlockingQueue<E> entityPool;
     private final int DEFAULT_SOCKET_POOL_SIZE;
 
@@ -49,14 +49,14 @@ public abstract class AbstractNetEntityPool<E extends Net> implements Container<
     }
 
     @Override
-    public E get(int id) {
+    public E get(I id) {
         return entityPool.stream()
-                .filter(e -> getId(e) == id)
+                .filter(e -> getId(e).equals(id))
                 .findFirst()
                 .orElse(null);
     }
 
     public abstract boolean finalizeEntity(E netEntity);
 
-    public abstract int getId(E netEntity);
+    public abstract I getId(E netEntity);
 }

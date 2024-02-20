@@ -4,11 +4,11 @@ import exceptions.HandleException;
 
 import java.util.List;
 
-public interface HandlersContainer<N, T> {
-    boolean addHandler(N identifier, MessageHandler<T> handler);
-    boolean removeHandler(N identifier);
-    MessageHandler<T> getHandler(N identifier);
+public interface HandlersContainer<I, T> extends Container<IdentifiableMessageHandler<I, T>>{
+    boolean addHandler(IdentifiableMessageHandler<I, T> handler);
+    boolean removeHandler(I identifier);
+    MessageHandler<T> getHandler(I identifier);
     boolean removeAllHandlers();
-    List<N> getALLHandlers();
-    void handle(T message) throws HandleException;
+    List<I> getALLHandlers();
+    void invokeAll(T message) throws HandleException;
 }

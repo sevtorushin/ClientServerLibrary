@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class ClientPool extends AbstractNetEntityPool<Client>{
+public class ClientPool extends AbstractNetEntityPool<Integer, Client>{
 
     @Override
     public boolean finalizeEntity(Client client) {
@@ -14,7 +14,7 @@ public class ClientPool extends AbstractNetEntityPool<Client>{
     }
 
     @Override
-    public int getId(Client client) {
+    public Integer getId(Client client) {
         return client.getClientConnection().getLocalPort();
     }
 }
