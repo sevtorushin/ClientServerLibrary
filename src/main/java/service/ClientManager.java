@@ -9,10 +9,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 public class ClientManager {
     private final ClientPool clientPool;
-    private final Map<Client, HandlersContainer<String, ByteBuffer>> clientsTasks;
+    private final Map<Client, AbstractHandlerContainer<String, ByteBuffer>> clientsTasks;
 
     public ClientManager() {
         this.clientPool = new ClientPool();
@@ -70,14 +71,14 @@ public class ClientManager {
 
     //---------------------------------------------------------------
 
-    public HandlersContainer<String, ByteBuffer> getHandlerManager(Client client) {
+    public AbstractHandlerContainer<String, ByteBuffer> getHandlerContainer(Client client) {
         return clientsTasks.get(client);
     }
 
-    public boolean addHandler(Client client, String taskIdentifier, MessageHandler<ByteBuffer> handler) {
-        HandlersContainer<String, ByteBuffer> manager = clientsTasks.get(client);
-        if (manager != null) {
-            boolean isSuccess = manager.addHandler(taskIdentifier, handler);
+    public boolean addHandler(Client client, IdentifiableMessageHandler<String, ByteBuffer> handler) {
+        AbstractHandlerContainer<String, ByteBuffer> container = clientsTasks.get(client);
+        if (container != null) {
+            boolean isSuccess = container.addNew(handler);
             if (isSuccess)
                 return true;
             else {
@@ -88,9 +89,9 @@ public class ClientManager {
     }
 
     public boolean removeHandler(Client client, String taskIdentifier) {
-        HandlersContainer<String, ByteBuffer> manager = getHandlerManager(client);
-        if (manager != null) {
-            boolean isSuccess = manager.removeHandler(taskIdentifier);
+        AbstractHandlerContainer<String, ByteBuffer> container = getHandlerContainer(client);
+        if (container != null) {
+            boolean isSuccess = container.removeFromId(taskIdentifier);
             if (isSuccess)
                 return true;
             else {
@@ -101,16 +102,16 @@ public class ClientManager {
     }
 
     public void removeAllHandlers(Client client) {
-        HandlersContainer<String, ByteBuffer> manager = getHandlerManager(client);
-        if (manager != null) {
-            manager.removeAllHandlers();
+        AbstractHandlerContainer<String, ByteBuffer> container = getHandlerContainer(client);
+        if (container != null) {
+            container.removeAll();
         } else throw new NoSuchElementException("Specified client is missed");
     }
 
     public List<String> getAllHandlers(Client client) {
-        HandlersContainer<String, ByteBuffer> manager = getHandlerManager(client);
-        if (manager != null) {
-            return manager.getALLHandlers();
+        AbstractHandlerContainer<String, ByteBuffer> container = getHandlerContainer(client);
+        if (container != null) {
+            return container.getAll().stream().map(IdentifiableMessageHandler::getIdentifier).collect(Collectors.toList());
         } else throw new NoSuchElementException("Specified client is missed");
     }
 
