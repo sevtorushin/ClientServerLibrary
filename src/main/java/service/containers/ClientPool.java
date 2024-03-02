@@ -1,11 +1,7 @@
-package service;
+package service.containers;
 
 import clients.another.Client;
 import lombok.NonNull;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.LinkedBlockingQueue;
 
 public class ClientPool extends AbstractNetEntityPool<Object, Client>{
 

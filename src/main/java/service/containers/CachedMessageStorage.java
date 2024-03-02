@@ -1,10 +1,11 @@
-package service;
+package service.containers;
 
 import lombok.Getter;
 import lombok.Setter;
+import service.Cached;
+import service.ReadProperties;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class CachedMessageStorage extends MessageStorage implements Cached<ByteBuffer> {

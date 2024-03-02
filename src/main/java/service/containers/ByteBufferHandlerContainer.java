@@ -1,6 +1,7 @@
-package service;
+package service.containers;
 
 import exceptions.HandleException;
+import service.MessageHandler;
 
 import java.nio.ByteBuffer;
 

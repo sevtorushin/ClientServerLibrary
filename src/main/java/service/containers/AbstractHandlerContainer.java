@@ -1,6 +1,7 @@
-package service;
+package service.containers;
 
 import exceptions.HandleException;
+import service.IdentifiableMessageHandler;
 
 import java.util.*;
 import java.util.stream.Collectors;

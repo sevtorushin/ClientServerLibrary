@@ -1,4 +1,4 @@
-package service;
+package service.containers;
 
 import entity.Net;
 import lombok.NonNull;
@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
-public abstract class AbstractNetEntityPool<I, E extends Net> implements Container<I, E>{
+public abstract class AbstractNetEntityPool<I, E extends Net> implements Container<I, E> {
     protected final LinkedBlockingQueue<E> entityPool;
     private final int DEFAULT_SOCKET_POOL_SIZE;
 

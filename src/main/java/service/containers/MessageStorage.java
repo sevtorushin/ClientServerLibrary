@@ -1,7 +1,9 @@
-package service;
+package service.containers;
 
 import lombok.Getter;
 import lombok.Setter;
+import service.ReadProperties;
+import service.Stored;
 
 import java.nio.ByteBuffer;
 

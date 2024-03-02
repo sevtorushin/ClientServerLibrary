@@ -1,6 +1,7 @@
 package service;
 
 import clients.another.Client;
+import service.containers.ClientPool;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;

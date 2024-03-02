@@ -1,10 +1,9 @@
-package service;
+package service.containers;
 
 import servers.another.Server;
+import service.containers.AbstractNetEntityPool;
 
-import java.io.IOException;
-
-public class ServerPool extends AbstractNetEntityPool<Integer, Server>{
+public class ServerPool extends AbstractNetEntityPool<Integer, Server> {
 
     @Override
     public boolean finalizeEntity(Server server) {
