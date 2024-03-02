@@ -1,10 +1,12 @@
 package service;
 
 import entity.Net;
+import lombok.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 
 public abstract class AbstractNetEntityPool<I, E extends Net> implements Container<I, E>{
     protected final LinkedBlockingQueue<E> entityPool;
@@ -36,6 +38,12 @@ public abstract class AbstractNetEntityPool<I, E extends Net> implements Contain
     }
 
     @Override
+    public boolean removeForID(@NonNull I ID) {
+        entityPool.removeIf(e -> getId(e).equals(ID));
+        return false;
+    }
+
+    @Override
     public boolean removeAll() {
         for (E netEntity : entityPool) {
             remove(netEntity);
@@ -46,6 +54,11 @@ public abstract class AbstractNetEntityPool<I, E extends Net> implements Contain
     @Override
     public List<E> getAll() {
         return new ArrayList<>(entityPool);
+    }
+
+    @Override
+    public List<I> getAllID(){
+        return entityPool.stream().map(this::getId).collect(Collectors.toList());
     }
 
     @Override

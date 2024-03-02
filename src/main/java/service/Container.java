@@ -1,11 +1,15 @@
 package service;
 
+import lombok.NonNull;
+
 import java.util.List;
 
 public interface Container<I, E> {
-    boolean addNew(E entity);
-    boolean remove(E entity);
+    boolean addNew(@NonNull E entity);
+    boolean remove(@NonNull E entity);
+    boolean removeForID(@NonNull I ID);
     boolean removeAll();
     List<E> getAll();
-    E get(I id);
+    List<I> getAllID();
+    E get(@NonNull I id);
 }

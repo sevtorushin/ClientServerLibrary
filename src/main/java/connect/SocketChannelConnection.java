@@ -30,7 +30,7 @@ public class SocketChannelConnection extends ClientConnection {
     }
 
     protected boolean con() throws IOException {
-        if (channel!=null && channel.isConnected()) {
+        if (channel != null && channel.isConnected()) {
             isConnected = true;
             return isConnected;
         }
@@ -59,8 +59,11 @@ public class SocketChannelConnection extends ClientConnection {
         channel.write(buffer);
     }
 
+    @ToString.Include(name = "localPort")
     @Override
-    public int getLocalPort(){
-        return channel.socket().getLocalPort();
+    public int getLocalPort() {
+        if (channel == null)
+            return 0;
+        else return channel.socket().getLocalPort();
     }
 }

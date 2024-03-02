@@ -22,7 +22,9 @@ public class Client implements AutoCloseable, Net {
     @Getter
     @Setter
     private String name;
-    private final long id;
+    @Getter
+    @Setter
+    private Object id;
     private static int clientCount = 0;
     @Getter
     protected ClientConnection clientConnection;

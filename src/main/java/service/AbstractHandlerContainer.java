@@ -2,11 +2,8 @@ package service;
 
 import exceptions.HandleException;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public abstract class AbstractHandlerContainer<I, T> implements Container<I, IdentifiableMessageHandler<I, T>> {
     protected final Set<IdentifiableMessageHandler<I, T>> handlers;
@@ -31,6 +28,11 @@ public abstract class AbstractHandlerContainer<I, T> implements Container<I, Ide
     }
 
     @Override
+    public boolean removeForID(I ID) {
+        return handlers.removeIf(imh -> imh.getIdentifier().equals(ID));
+    }
+
+    @Override
     public boolean removeAll() {
         handlers.clear();
         return true;
@@ -42,15 +44,13 @@ public abstract class AbstractHandlerContainer<I, T> implements Container<I, Ide
     }
 
     @Override
-    public IdentifiableMessageHandler<I, T> get(I id) {
-        return handlers.stream().filter(handler -> handler.getIdentifier().equals(id)).findFirst().orElse(null);
+    public List<I> getAllID() {
+        return handlers.stream().map(IdentifiableMessageHandler::getIdentifier).collect(Collectors.toList());
     }
 
-    public boolean removeFromId(I identifier) {
-        MessageHandler<T> handler = get(identifier);
-        if (handler != null)
-            return handlers.remove(handler);
-        else return false;
+    @Override
+    public IdentifiableMessageHandler<I, T> get(I id) {
+        return handlers.stream().filter(handler -> handler.getIdentifier().equals(id)).findFirst().orElse(null);
     }
 
     public abstract void invokeAll(T message) throws HandleException;

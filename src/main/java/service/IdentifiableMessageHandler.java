@@ -7,10 +7,9 @@ import lombok.*;
 public abstract class IdentifiableMessageHandler<I, T> implements MessageHandler<T> {
     @Getter
     @Setter
-    @NonNull
     private I identifier;
 
-    public IdentifiableMessageHandler(@NonNull I identifier) {
+    public IdentifiableMessageHandler(I identifier) {
         this.identifier = identifier;
     }
 }

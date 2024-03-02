@@ -51,8 +51,11 @@ public class SocketConnection extends ClientConnection {
         socket.getOutputStream().write(buffer.array());
     }
 
+    @ToString.Include(name = "localPort")
     @Override
-    public int getLocalPort(){
-        return socket.getLocalPort();
+    public int getLocalPort() {
+        if (socket == null)
+            return 0;
+        else return socket.getLocalPort();
     }
 }
