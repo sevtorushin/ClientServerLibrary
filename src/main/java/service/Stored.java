@@ -1,7 +1,12 @@
 package service;
 
-public interface Stored<T> {
-    void putToStorage(T message);
-    T retrieveFromStorage();
-    void clearStorage();
+import lombok.NonNull;
+
+import java.util.List;
+
+public interface Stored<E> {
+    boolean addNew(@NonNull E message);
+    boolean remove(@NonNull E message);
+    boolean removeAll();
+    List<E> getAll();
 }

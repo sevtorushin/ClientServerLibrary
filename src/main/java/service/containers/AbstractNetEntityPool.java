@@ -24,7 +24,10 @@ public abstract class AbstractNetEntityPool<I, E extends Net> implements Contain
 
     @Override
     public boolean addNew(@NonNull E netEntity) {
-        return entityPool.offer(netEntity);
+        if (entityPool.contains(netEntity))
+            return false;
+        else
+            return entityPool.offer(netEntity);
     }
 
     @Override
@@ -38,9 +41,8 @@ public abstract class AbstractNetEntityPool<I, E extends Net> implements Contain
     }
 
     @Override
-    public boolean removeForID(@NonNull I ID) {
-        entityPool.removeIf(e -> getId(e).equals(ID));
-        return false;
+    public boolean removeForID(@NonNull I id) {
+        return entityPool.removeIf(e -> getId(e).equals(id));
     }
 
     @Override
@@ -57,7 +59,7 @@ public abstract class AbstractNetEntityPool<I, E extends Net> implements Contain
     }
 
     @Override
-    public List<I> getAllID(){
+    public List<I> getAllID() {
         return entityPool.stream().map(this::getId).collect(Collectors.toList());
     }
 

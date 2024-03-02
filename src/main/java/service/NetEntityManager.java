@@ -73,7 +73,7 @@ public abstract class NetEntityManager<NetType extends Net, MessageType> {
         }
     }
 
-    public List<NetType> getAllNetEntity() {
+    public List<NetType> getAllNetEntities() {
         return new ArrayList<>(entityPool.getAll());
     }
 

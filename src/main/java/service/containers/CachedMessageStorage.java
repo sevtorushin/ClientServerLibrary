@@ -75,8 +75,9 @@ public class CachedMessageStorage extends MessageStorage implements Cached<ByteB
     }
 
     @Override
-    public void clearStorage() {
+    public boolean removeAll() {
         cache.clear();
         tempBuffer.clear();
+        return true;
     }
 }

@@ -5,6 +5,12 @@ import lombok.NonNull;
 
 public class ClientPool extends AbstractNetEntityPool<Object, Client>{
 
+    public ClientPool(int DEFAULT_SOCKET_POOL_SIZE) {
+        super(DEFAULT_SOCKET_POOL_SIZE);
+    }
+
+    public ClientPool() {}
+
     @Override
     public boolean finalizeEntity(@NonNull Client client) {
         return client.disconnect();
