@@ -23,12 +23,12 @@ public abstract class AbstractNetEntityPool<I, E extends Net> implements Contain
     }
 
     @Override
-    public boolean addNew(E netEntity) {
+    public boolean addNew(@NonNull E netEntity) {
         return entityPool.offer(netEntity);
     }
 
     @Override
-    public boolean remove(E netEntity) {
+    public boolean remove(@NonNull E netEntity) {
         if (finalizeEntity(netEntity))
             return entityPool.remove(netEntity);
         else {
@@ -62,7 +62,7 @@ public abstract class AbstractNetEntityPool<I, E extends Net> implements Contain
     }
 
     @Override
-    public E get(I id) {
+    public E get(@NonNull I id) {
         return entityPool.stream()
                 .filter(e -> getId(e).equals(id))
                 .findFirst()
