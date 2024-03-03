@@ -26,7 +26,7 @@ public class ClientPool extends AbstractNetEntityPool<Object, Client>{
     }
 
     public Client getOnLocalPort(@NonNull Integer localPort){
-        return entityPool.stream()
+        return entityStorage.stream()
                 .filter(client -> client.getClientConnection().getLocalPort()==localPort)
                 .findFirst()
                 .orElse(null);

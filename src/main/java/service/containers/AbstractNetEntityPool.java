@@ -4,36 +4,35 @@ import entity.Net;
 import lombok.NonNull;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
-public abstract class AbstractNetEntityPool<I, E extends Net> implements Container<I, E> {
-    protected final LinkedBlockingQueue<E> entityPool;
+public abstract class AbstractNetEntityPool<I, E extends Net> extends AbstractContainer<I, E> {
     private final int DEFAULT_SOCKET_POOL_SIZE;
 
     public AbstractNetEntityPool(int DEFAULT_SOCKET_POOL_SIZE) {
+        super(new HashSet<>());
         this.DEFAULT_SOCKET_POOL_SIZE = DEFAULT_SOCKET_POOL_SIZE;
-        this.entityPool = new LinkedBlockingQueue<>(DEFAULT_SOCKET_POOL_SIZE);
     }
 
     public AbstractNetEntityPool() {
-        this.DEFAULT_SOCKET_POOL_SIZE = Integer.MAX_VALUE;
-        this.entityPool = new LinkedBlockingQueue<>(DEFAULT_SOCKET_POOL_SIZE);
+        super(new HashSet<>());
+        this.DEFAULT_SOCKET_POOL_SIZE = 100;
     }
 
     @Override
     public boolean addNew(@NonNull E netEntity) {
-        if (entityPool.contains(netEntity))
+        if (entityStorage.size() >= DEFAULT_SOCKET_POOL_SIZE)
             return false;
-        else
-            return entityPool.offer(netEntity);
+        else return super.addNew(netEntity);
     }
 
     @Override
     public boolean remove(@NonNull E netEntity) {
         if (finalizeEntity(netEntity))
-            return entityPool.remove(netEntity);
+            return super.remove(netEntity);
         else {
             System.err.println(String.format("%s disconnect error", netEntity));
             return false;
@@ -41,37 +40,12 @@ public abstract class AbstractNetEntityPool<I, E extends Net> implements Contain
     }
 
     @Override
-    public boolean removeForID(@NonNull I id) {
-        return entityPool.removeIf(e -> getId(e).equals(id));
-    }
-
-    @Override
     public boolean removeAll() {
-        for (E netEntity : entityPool) {
+        for (E netEntity : entityStorage) {
             remove(netEntity);
         }
-        return entityPool.isEmpty();
+        return entityStorage.isEmpty();
     }
 
-    @Override
-    public List<E> getAll() {
-        return new ArrayList<>(entityPool);
-    }
-
-    @Override
-    public List<I> getAllID() {
-        return entityPool.stream().map(this::getId).collect(Collectors.toList());
-    }
-
-    @Override
-    public E get(@NonNull I id) {
-        return entityPool.stream()
-                .filter(e -> getId(e).equals(id))
-                .findFirst()
-                .orElse(null);
-    }
-
-    public abstract boolean finalizeEntity(E netEntity);
-
-    public abstract I getId(E netEntity);
+    public abstract boolean finalizeEntity(@NonNull E netEntity);
 }
