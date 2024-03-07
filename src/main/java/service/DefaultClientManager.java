@@ -4,6 +4,7 @@ import clients.another.Client;
 import service.containers.ClientPool;
 
 import java.lang.reflect.InvocationTargetException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
@@ -17,6 +18,16 @@ public class DefaultClientManager extends NetEntityManager<Client, ByteBuffer> {
         Client client = null;
         try {
             client = clientClass.getConstructor(SocketChannel.class).newInstance(clientSocket);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+        return client;
+    }
+
+    public Client createClient(InetSocketAddress endpoint, Class<? extends Client> clientClass) {
+        Client client = null;
+        try {
+            client = clientClass.getConstructor(InetSocketAddress.class).newInstance(endpoint);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
         }

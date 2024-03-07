@@ -1,5 +1,6 @@
 package connect;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -13,10 +14,12 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.locks.ReentrantLock;
 
 @ToString(exclude = {"isConnected", "lock", "reconnectPeriod", "reconnectionMode"})
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public abstract class ClientConnection implements TCPConnection, Reconnectable, Transmitter<ByteBuffer>, AutoCloseable {
     volatile boolean isConnected;
     private final ReentrantLock lock = new ReentrantLock();
     @Getter
+    @EqualsAndHashCode.Include
     InetSocketAddress endpoint;
     @Getter
     @Setter

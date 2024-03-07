@@ -17,11 +17,11 @@ public abstract class NetEntityManager<NetType extends Net, MessageType> {
         this.map = new HashMap<>();
     }
 
-    protected AbstractHandlerContainer<Object, MessageType> getHandlerContainer(NetType netEntity) {
+    public AbstractHandlerContainer<Object, MessageType> getHandlerContainer(@NonNull NetType netEntity) {
         return map.get(netEntity);
     }
 
-    public boolean addNetEntity(@NonNull NetType netEntity, AbstractHandlerContainer<Object, MessageType> handlerContainer) {
+    public boolean addNetEntity(@NonNull NetType netEntity, @NonNull AbstractHandlerContainer<Object, MessageType> handlerContainer) {
         if (entityPool.addNew(netEntity)) {
             map.put(netEntity, handlerContainer);
             return true;
@@ -38,7 +38,7 @@ public abstract class NetEntityManager<NetType extends Net, MessageType> {
     public boolean removeNetEntity(@NonNull Object idNetEntity) {
         NetType netEntity = entityPool.get(idNetEntity);
         if (netEntity == null)
-            throw new NoSuchElementException(String.format("Specified entity with ID %s missed in pool", idNetEntity));
+            throw new NoSuchElementException(String.format("Specified entity with ID '%s' missed in pool", idNetEntity));
         if (entityPool.remove(netEntity)) {
             map.remove(netEntity);
             return true;
@@ -50,11 +50,11 @@ public abstract class NetEntityManager<NetType extends Net, MessageType> {
         if (handlerContainer == null) {
             throw new NoSuchElementException(String.format("Specified %s missed in pool", netEntity.getClass().getSimpleName()));
         }
-        boolean isSuccess = getHandlerContainer(netEntity).addNew(handler);
+        boolean isSuccess = handlerContainer.addNew(handler);
         if (isSuccess)
             return true;
         else {
-            System.err.println(String.format("Handler with specified identifier is missed for %s", netEntity));
+            System.err.println(String.format("%s already contains the specified handler", netEntity));
             return false;
         }
     }
@@ -113,7 +113,7 @@ public abstract class NetEntityManager<NetType extends Net, MessageType> {
         return handlerContainer.getAll().isEmpty();
     }
 
-    public NetType getNetEntity(Object ID) {
-        return entityPool.get(ID);
+    public NetType getNetEntity(@NonNull Object id) {
+        return entityPool.get(id);
     }
 }

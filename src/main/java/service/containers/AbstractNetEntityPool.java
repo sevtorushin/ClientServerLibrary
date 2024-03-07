@@ -5,6 +5,7 @@ import lombok.NonNull;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
@@ -41,9 +42,7 @@ public abstract class AbstractNetEntityPool<I, E extends Net> extends AbstractCo
 
     @Override
     public boolean removeAll() {
-        for (E netEntity : entityStorage) {
-            remove(netEntity);
-        }
+        entityStorage.removeIf(this::finalizeEntity);
         return entityStorage.isEmpty();
     }
 

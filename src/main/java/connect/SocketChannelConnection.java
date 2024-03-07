@@ -1,5 +1,6 @@
 package connect;
 
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.io.IOException;
@@ -8,6 +9,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 @ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true,
+        onlyExplicitlyIncluded = true)
 public class SocketChannelConnection extends ClientConnection {
     @ToString.Exclude
     private SocketChannel channel;
