@@ -17,7 +17,7 @@ public class SocketConnection extends ClientConnection {
 
     public SocketConnection(Socket socket) {
         this.socket = socket;
-        this.endpoint = (InetSocketAddress) socket.getRemoteSocketAddress();
+        this.endpoint = (InetSocketAddress) socket.getLocalSocketAddress();
     }
 
     public SocketConnection(InetSocketAddress endpoint) {

@@ -2,6 +2,7 @@ package clients.another;
 
 import connect.ClientConnection;
 import connect.SocketChannelConnection;
+import connect.SocketConnection;
 import entity.Net;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -13,6 +14,7 @@ import service.containers.MessageStorage;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
@@ -34,6 +36,13 @@ public class Client implements AutoCloseable, Net {
 
     public Client(SocketChannel socketChannel) {
         this.clientConnection = new SocketChannelConnection(socketChannel);
+        this.storage = new MessageStorage();
+        this.name = getClass().getSimpleName();
+        this.id = ++clientCount;
+    }
+
+    public Client(Socket socket) {
+        this.clientConnection = new SocketConnection(socket);
         this.storage = new MessageStorage();
         this.name = getClass().getSimpleName();
         this.id = ++clientCount;
