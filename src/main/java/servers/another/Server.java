@@ -4,7 +4,10 @@ import clients.another.Client;
 import connect.serverConnections.ServerConnection;
 import connect.serverConnections.ServerSocketChannelConnection;
 import entity.Net;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import service.DefaultClientManager;
 import service.containers.ByteBufferHandlerContainer;
 
@@ -15,18 +18,29 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+@ToString(exclude = {"stopped", "clientManager", "executor"})
+@EqualsAndHashCode(exclude = {"stopped", "clientManager", "executor"})
 public class Server implements Runnable, Net {
+    @Getter
+    @Setter
+    private String name;
+    @Getter
+    @Setter
+    private Object id;
+    private static int serverCount = 0;
+    @Getter
+    private boolean stopped;
     private final ServerConnection connection;
     @Getter
     private final DefaultClientManager clientManager;
-    @Getter
-    private boolean stopped;
     ExecutorService executor;
 
     public Server(int port) throws IOException {
         this.connection = new ServerSocketChannelConnection(port);
         this.clientManager = new DefaultClientManager();
         this.executor = Executors.newCachedThreadPool();
+        this.name = getClass().getSimpleName();
+        this.id = ++serverCount;
     }
 
     @Override

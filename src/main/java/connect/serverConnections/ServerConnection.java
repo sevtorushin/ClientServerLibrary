@@ -1,10 +1,14 @@
 package connect.serverConnections;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.ToString;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
+@ToString
+@EqualsAndHashCode
 public abstract class ServerConnection {
 
     @Getter
