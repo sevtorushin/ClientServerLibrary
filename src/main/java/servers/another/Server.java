@@ -35,7 +35,7 @@ public class Server implements Runnable, Net {
     private final DefaultClientManager clientManager;
     ExecutorService executor;
 
-    public Server(int port) throws IOException {
+    public Server(Integer port) throws IOException {
         this.connection = new ServerSocketChannelConnection(port);
         this.clientManager = new DefaultClientManager();
         this.executor = Executors.newCachedThreadPool();
