@@ -1,95 +1,85 @@
 package servers.another;
 
 import clients.another.Client;
+import connect.serverConnections.ServerConnection;
+import connect.serverConnections.ServerSocketChannelConnection;
 import entity.Net;
 import lombok.Getter;
 import service.DefaultClientManager;
+import service.containers.ByteBufferHandlerContainer;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server implements Runnable, Net {
-
-    private final ServerSocketChannel serverSocketChannel;
+    private final ServerConnection connection;
     @Getter
     private final DefaultClientManager clientManager;
+    @Getter
     private boolean stopped;
+    ExecutorService executor;
 
     public Server(int port) throws IOException {
-        this.serverSocketChannel = ServerSocketChannel.open();
-        this.serverSocketChannel.bind(new InetSocketAddress(port));
-        this.serverSocketChannel.configureBlocking(false);
+        this.connection = new ServerSocketChannelConnection(port);
         this.clientManager = new DefaultClientManager();
+        this.executor = Executors.newCachedThreadPool();
     }
 
     @Override
     public void run() {
+        executor.submit(this::checkAliveClient);
         while (!isStopped()) {
             try {
-                SocketChannel clientSocket = serverSocketChannel.accept();
+                SocketChannel clientSocket = connection.accept();
                 if (clientSocket != null) {
-                    Client client = connectClient(clientSocket);
-                    System.out.println(client);
+                    connectClient(clientSocket);
                 }
                 Thread.sleep(500);
-                checkAliveSocket();
-                clientManager.getAllNetEntities().forEach(client -> System.out.println(client.isConnected()));
             } catch (InterruptedException | IOException e) {
                 e.printStackTrace();
             }
         }
     }
 
-    private void checkAliveSocket() {
-        getAllClients().forEach(client -> {
-            if(!client.isConnected())
-                clientManager.removeNetEntity(client);
-            else {
-                client.sendMessage(ByteBuffer.wrap(new byte[]{0}));
+    private void checkAliveClient() { //todo мб в отдельный класс?
+        while (!stopped) {
+            try {
+                List<Client> clientList = clientManager.getAllNetEntities();
+                clientList.forEach(client -> {
+                    client.sendMessage(ByteBuffer.wrap("\r\n".getBytes()));
+                    if (!client.isConnected())
+                        clientManager.removeNetEntity(client);
+                });
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-        });
+        }
     }
 
+
     public void start() {
-        new Thread(this).start();
+        executor.submit(this);
     }
 
     public void stop() throws IOException {
         stopped = true;
-        disconnectAllClients();
-        serverSocketChannel.close();
+        clientManager.removeAllNetEntities();
+        connection.close();
     }
 
     private Client connectClient(SocketChannel clientSocket) {
-        Client clientTest = clientManager.createClient(clientSocket, Client.class);
-//        if (clientManager.addNewClient(clientTest))
-//            clientTest.connect();
-        return clientTest;
-    }
-
-    public boolean disconnectClient(Client client) {
-        if (client == null)
-            return false;
-        return clientManager.removeNetEntity(client);
-    }
-
-    public boolean disconnectAllClients() {
-        return clientManager.removeAllNetEntities();
-    }
-
-    public List<Client> getAllClients() {
-        return clientManager.getAllNetEntities();
-    }
-
-    public boolean isStopped() {
-        return stopped;
+        Client connectedClient = clientManager.createClient(clientSocket, Client.class);
+        if (clientManager.addNetEntity(connectedClient, new ByteBufferHandlerContainer<>()))
+            connectedClient.connect();
+        return connectedClient;
     }
 
     public int getLocalPort(){
-        return serverSocketChannel.socket().getLocalPort();
+        return connection.getPort();
     }
 }

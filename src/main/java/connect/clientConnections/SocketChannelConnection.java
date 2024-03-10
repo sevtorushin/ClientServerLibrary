@@ -1,4 +1,4 @@
-package connect;
+package connect.clientConnections;
 
 import lombok.EqualsAndHashCode;
 import lombok.ToString;

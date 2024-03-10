@@ -1,8 +1,8 @@
 package clients.another;
 
-import connect.ClientConnection;
-import connect.SocketChannelConnection;
-import connect.SocketConnection;
+import connect.clientConnections.ClientConnection;
+import connect.clientConnections.SocketChannelConnection;
+import connect.clientConnections.SocketConnection;
 import entity.Net;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;

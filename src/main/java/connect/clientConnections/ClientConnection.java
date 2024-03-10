@@ -1,5 +1,8 @@
-package connect;
+package connect.clientConnections;
 
+import connect.Reconnectable;
+import connect.TCPConnection;
+import connect.Transmitter;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
