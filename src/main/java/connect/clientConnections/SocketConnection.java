@@ -61,4 +61,11 @@ public class SocketConnection extends ClientConnection {
             return 0;
         else return socket.getLocalPort();
     }
+
+    @ToString.Include(name = "remotePort")
+    public int getRemotePort() {
+        if (socket == null)
+            return 0;
+        else return socket.getPort();
+    }
 }
