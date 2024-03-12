@@ -4,10 +4,7 @@ import clients.another.Client;
 import connect.serverConnections.ServerConnection;
 import connect.serverConnections.ServerSocketChannelConnection;
 import entity.Net;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import service.DefaultClientManager;
 import service.containers.ByteBufferHandlerContainer;
 
@@ -95,5 +92,13 @@ public class Server implements Runnable, Net {
 
     public int getLocalPort(){
         return connection.getPort();
+    }
+
+    public ByteBuffer receiveMessage(@NonNull Client client) {
+        return client.receiveMessage();
+    }
+
+    public void sendMessage(Client client, ByteBuffer message){
+        client.sendMessage(message);
     }
 }
