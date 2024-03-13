@@ -4,12 +4,13 @@ import entity.Net;
 import lombok.NonNull;
 import service.containers.AbstractHandlerContainer;
 import service.containers.AbstractNetEntityPool;
+import test.AbstractNetManager;
 
 import java.util.*;
 
 public abstract class NetEntityManager<NetType extends Net, MessageType> {
 
-    protected Map<NetType, AbstractHandlerContainer<Object, MessageType>> map;
+    protected Map<NetType, LocalContainer> map;
     protected AbstractNetEntityPool<Object, NetType> entityPool;
 
     NetEntityManager(AbstractNetEntityPool<Object, NetType> entityPool) {
@@ -17,13 +18,27 @@ public abstract class NetEntityManager<NetType extends Net, MessageType> {
         this.map = new HashMap<>();
     }
 
+    private class LocalContainer {
+        private final AbstractHandlerContainer<Object, MessageType> handlerContainer;
+        private final TaskContainer taskContainer;
+
+        public LocalContainer(AbstractHandlerContainer<Object, MessageType> handlerContainer) {
+            this.handlerContainer = handlerContainer;
+            this.taskContainer = new TaskContainer();
+        }
+    }
+
     public AbstractHandlerContainer<Object, MessageType> getHandlerContainer(@NonNull NetType netEntity) {
-        return map.get(netEntity);
+        return map.get(netEntity).handlerContainer;
+    }
+
+    public TaskContainer getTaskContainer(@NonNull NetType netEntity) {
+        return map.get(netEntity).taskContainer;
     }
 
     public boolean addNetEntity(@NonNull NetType netEntity, @NonNull AbstractHandlerContainer<Object, MessageType> handlerContainer) {
         if (entityPool.addNew(netEntity)) {
-            map.put(netEntity, handlerContainer);
+            map.put(netEntity, new LocalContainer(handlerContainer));
             return true;
         } else return false;
     }
@@ -35,15 +50,12 @@ public abstract class NetEntityManager<NetType extends Net, MessageType> {
         } else return false;
     }
 
-    public boolean removeNetEntity(@NonNull Object idNetEntity) {
-        NetType netEntity = entityPool.get(idNetEntity);
-        if (netEntity == null)
-            throw new NoSuchElementException(String.format("Specified entity with ID '%s' missed in pool", idNetEntity));
-        if (entityPool.remove(netEntity)) {
-            map.remove(netEntity);
-            return true;
-        } else return false;
-    }
+//    public boolean removeNetEntity(@NonNull Object idNetEntity) {
+//        NetType netEntity = entityPool.get(idNetEntity);
+//        if (netEntity == null)
+//            throw new NoSuchElementException(String.format("Specified entity with ID '%s' missed in pool", idNetEntity));
+//        else return removeNetEntity(netEntity);
+//    }
 
     public boolean addHandler(@NonNull NetType netEntity, @NonNull IdentifiableMessageHandler<Object, MessageType> handler) {
         AbstractHandlerContainer<Object, MessageType> handlerContainer = getHandlerContainer(netEntity);
@@ -73,6 +85,34 @@ public abstract class NetEntityManager<NetType extends Net, MessageType> {
         }
     }
 
+    public <T> boolean addTask(@NonNull NetType netEntity, @NonNull IdentifiableTask<Object, T> task) {
+        TaskContainer taskContainer = getTaskContainer(netEntity);
+        if (taskContainer == null) {
+            throw new NoSuchElementException(String.format("Specified %s missed in pool", netEntity.getClass().getSimpleName()));
+        }
+        boolean isSuccess = taskContainer.addNew(task);
+        if (isSuccess)
+            return true;
+        else {
+            System.err.println(String.format("%s already contains the specified task", netEntity));
+            return false;
+        }
+    }
+
+    public boolean removeTask(@NonNull NetType netEntity, @NonNull Object taskId) {
+        TaskContainer taskContainer = getTaskContainer(netEntity);
+        if (taskContainer == null) {
+            throw new NoSuchElementException(String.format("Specified %s missed in pool", netEntity.getClass().getSimpleName()));
+        }
+        boolean isSuccess = taskContainer.removeForID(taskId);
+        if (isSuccess)
+            return true;
+        else {
+            System.err.println(String.format("Task with specified identifier '%s' is missed for %s", taskId, netEntity));
+            return false;
+        }
+    }
+
     public List<NetType> getAllNetEntities() {
         return new ArrayList<>(entityPool.getAll());
     }
@@ -95,6 +135,20 @@ public abstract class NetEntityManager<NetType extends Net, MessageType> {
         } else return new ArrayList<>(handlerContainer.getAllID());
     }
 
+    public List<Task<?>> getAllTasks(@NonNull NetType netEntity) {
+        TaskContainer taskContainer = getTaskContainer(netEntity);
+        if (taskContainer == null) {
+            throw new NoSuchElementException(String.format("Specified %s missed in pool", netEntity.getClass().getSimpleName()));
+        } else return new ArrayList<>(taskContainer.getAll());
+    }
+
+    public List<Object> getAllIdTasks(@NonNull NetType netEntity) {
+        TaskContainer taskContainer = getTaskContainer(netEntity);
+        if (taskContainer == null) {
+            throw new NoSuchElementException(String.format("Specified %s missed in pool", netEntity.getClass().getSimpleName()));
+        } else return new ArrayList<>(taskContainer.getAllID());
+    }
+
     public boolean removeAllNetEntities() {
         List<NetType> all = entityPool.getAll();
         for (NetType netEntity : all) {
@@ -111,6 +165,16 @@ public abstract class NetEntityManager<NetType extends Net, MessageType> {
             handlerContainer.removeAll();
         }
         return handlerContainer.getAll().isEmpty();
+    }
+
+    public boolean removeAllTasks(@NonNull NetType netEntity) {
+        TaskContainer taskContainer = getTaskContainer(netEntity);
+        if (taskContainer == null)
+            throw new NoSuchElementException(String.format("Specified %s missed in pool", netEntity.getClass().getSimpleName()));
+        else {
+            taskContainer.removeAll();
+        }
+        return taskContainer.getAll().isEmpty();
     }
 
     public NetType getNetEntity(@NonNull Object id) {

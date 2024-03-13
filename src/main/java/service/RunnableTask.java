@@ -6,12 +6,12 @@ import java.util.concurrent.CompletableFuture;
 
 @ToString
 @EqualsAndHashCode
-//@AllArgsConstructor
 public abstract class RunnableTask implements IdentifiableTask<Object, Void>, Runnable {
     @Getter
     @Setter
     private Object id;
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @Getter
     private CompletableFuture<Void> completableFuture;
 

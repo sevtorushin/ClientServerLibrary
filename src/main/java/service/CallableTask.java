@@ -8,14 +8,14 @@ import java.util.concurrent.CompletableFuture;
 
 @ToString
 @EqualsAndHashCode
-//@AllArgsConstructor
 public abstract class CallableTask<T> implements IdentifiableTask<Object, T>, Callable<T> {
     @Getter
     @Setter
     private Object id;
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @Getter
-    CompletableFuture<T> completableFuture;
+    private CompletableFuture<T> completableFuture;
 
     public CallableTask(Object id) {
         this.id = id;
