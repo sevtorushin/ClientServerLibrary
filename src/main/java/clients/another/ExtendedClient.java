@@ -3,7 +3,7 @@ package clients.another;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import service.TaskContainer;
+import service.containers.TaskContainer;
 import service.containers.AbstractHandlerContainer;
 import service.containers.ByteBufferHandlerContainer;
 

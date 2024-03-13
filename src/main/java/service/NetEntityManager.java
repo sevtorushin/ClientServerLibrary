@@ -4,7 +4,7 @@ import entity.Net;
 import lombok.NonNull;
 import service.containers.AbstractHandlerContainer;
 import service.containers.AbstractNetEntityPool;
-import test.AbstractNetManager;
+import service.containers.TaskContainer;
 
 import java.util.*;
 

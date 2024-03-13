@@ -6,21 +6,13 @@ import lombok.experimental.FieldNameConstants;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 
-@ToString
-@EqualsAndHashCode
-public abstract class CallableTask<T> implements IdentifiableTask<Object, T>, Callable<T> {
-    @Getter
-    @Setter
-    private Object id;
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    @Getter
-    private CompletableFuture<T> completableFuture;
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
+public abstract class CallableTask<T> extends IdentifiableTask<Object, T> implements Callable<T> {
 
     public CallableTask(Object id) {
-        this.id = id;
+        super(id);
     }
-
 
     @Override
     public CompletableFuture<T> execute() {

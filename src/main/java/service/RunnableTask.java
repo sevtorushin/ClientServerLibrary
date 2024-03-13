@@ -4,19 +4,12 @@ import lombok.*;
 
 import java.util.concurrent.CompletableFuture;
 
-@ToString
-@EqualsAndHashCode
-public abstract class RunnableTask implements IdentifiableTask<Object, Void>, Runnable {
-    @Getter
-    @Setter
-    private Object id;
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    @Getter
-    private CompletableFuture<Void> completableFuture;
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
+public abstract class RunnableTask extends IdentifiableTask<Object, Void> implements Runnable {
 
     public RunnableTask(Object id) {
-        this.id = id;
+        super(id);
     }
 
     @Override
