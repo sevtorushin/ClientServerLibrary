@@ -52,6 +52,8 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
 
     public abstract int getLocalPort();
 
+    public abstract int getRemotePort();
+
     public boolean isConnected() {
         return isConnected;
     }

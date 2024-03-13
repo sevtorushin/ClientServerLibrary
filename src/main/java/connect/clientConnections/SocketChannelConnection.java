@@ -62,14 +62,15 @@ public class SocketChannelConnection extends ClientConnection {
         channel.write(buffer);
     }
 
-    @ToString.Include(name = "localPort")
     @Override
+    @ToString.Include(name = "localPort")
     public int getLocalPort() {
         if (channel == null)
             return 0;
         else return channel.socket().getLocalPort();
     }
 
+    @Override
     @ToString.Include(name = "remotePort")
     public int getRemotePort() {
         if (channel == null)

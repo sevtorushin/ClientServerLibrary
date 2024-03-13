@@ -31,4 +31,11 @@ public class ClientPool extends AbstractNetEntityPool<Object, Client>{
                 .findFirst()
                 .orElse(null);
     }
+
+    public Client getOnRemotePort(@NonNull Integer remotePort){
+        return entityStorage.stream()
+                .filter(client -> client.getClientConnection().getRemotePort()==remotePort)
+                .findFirst()
+                .orElse(null);
+    }
 }

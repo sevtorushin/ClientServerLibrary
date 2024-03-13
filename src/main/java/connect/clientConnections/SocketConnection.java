@@ -54,14 +54,15 @@ public class SocketConnection extends ClientConnection {
         socket.getOutputStream().write(buffer.array());
     }
 
-    @ToString.Include(name = "localPort")
     @Override
+    @ToString.Include(name = "localPort")
     public int getLocalPort() {
         if (socket == null)
             return 0;
         else return socket.getLocalPort();
     }
 
+    @Override
     @ToString.Include(name = "remotePort")
     public int getRemotePort() {
         if (socket == null)
