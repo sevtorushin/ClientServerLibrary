@@ -1,12 +1,15 @@
 package servers.another;
 
 import clients.another.Client;
+import clients.another.ExtendedClient;
 import connect.serverConnections.ServerConnection;
 import connect.serverConnections.ServerSocketChannelConnection;
 import entity.Net;
 import lombok.*;
 import service.DefaultClientManager;
+import service.containers.AbstractNetEntityPool;
 import service.containers.ByteBufferHandlerContainer;
+import service.containers.ClientPool;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -15,8 +18,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@ToString(exclude = {"stopped", "clientManager", "executor"})
-@EqualsAndHashCode(exclude = {"stopped", "clientManager", "executor"})
+@ToString(exclude = {"stopped", "clientPool", "executor"})
+@EqualsAndHashCode(exclude = {"stopped", "clientPool", "executor"})
 public class Server implements Runnable, Net {
     @Getter
     @Setter
@@ -29,12 +32,12 @@ public class Server implements Runnable, Net {
     private boolean stopped;
     private final ServerConnection connection;
     @Getter
-    private final DefaultClientManager clientManager;
-    ExecutorService executor;
+    private final AbstractNetEntityPool<Object, Client> clientPool;
+    private final ExecutorService executor;
 
     public Server(Integer port) throws IOException {
         this.connection = new ServerSocketChannelConnection(port);
-        this.clientManager = new DefaultClientManager();
+        this.clientPool = new ClientPool();
         this.executor = Executors.newCachedThreadPool();
         this.name = getClass().getSimpleName();
         this.id = ++serverCount;
@@ -59,11 +62,11 @@ public class Server implements Runnable, Net {
     private void checkAliveClient() { //todo мб в отдельный класс?
         while (!stopped) {
             try {
-                List<Client> clientList = clientManager.getAllNetEntities();
+                List<Client> clientList = clientPool.getAll();
                 clientList.forEach(client -> {
                     client.sendMessage(ByteBuffer.wrap("\r\n".getBytes()));
                     if (!client.isConnected())
-                        clientManager.removeNetEntity(client);
+                        clientPool.remove(client);
                 });
                 Thread.sleep(5000);
             } catch (InterruptedException e) {
@@ -79,13 +82,13 @@ public class Server implements Runnable, Net {
 
     public void stop() throws IOException {
         stopped = true;
-        clientManager.removeAllNetEntities();
+        clientPool.removeAll();
         connection.close();
     }
 
     private Client connectClient(SocketChannel clientSocket) {
-        Client connectedClient = clientManager.createClient(clientSocket, Client.class);
-        if (clientManager.addNetEntity(connectedClient, new ByteBufferHandlerContainer<>()))
+        Client connectedClient = new ExtendedClient(clientSocket);
+        if (clientPool.addNew(connectedClient));
             connectedClient.connect();
         return connectedClient;
     }
