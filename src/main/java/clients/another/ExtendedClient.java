@@ -44,5 +44,13 @@ public class ExtendedClient extends Client {
         this.taskContainer = new TaskContainer();
     }
 
-
+    @Override
+    public void close() {
+        if (!taskContainer.forceRemoveAll()) {
+            System.err.println(String.format("Don't remove all tasks for %s. Client not closed", this));
+            return;
+        }
+        this.handlerContainer.removeAll();
+        super.close();
+    }
 }

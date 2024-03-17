@@ -20,10 +20,12 @@ public class TaskContainer extends AbstractContainer<Object, IdentifiableTask<Ob
         return entity.getId();
     }
 
-    public CompletableFuture<?> executeTask(Object id) {
-        return get(id).execute();
-    }
-
+    /**
+     * Soft removing task. If the specified task is not completed, it is not delete.
+     *
+     * @param entity task.
+     * @return {@code true} if the specified task removed or {@code false} if not.
+     */
     @Override
     public boolean remove(@NonNull IdentifiableTask<Object, ?> entity) {
         if (entity.isDone())
@@ -40,6 +42,11 @@ public class TaskContainer extends AbstractContainer<Object, IdentifiableTask<Ob
         return remove(task);
     }
 
+    /**
+     * Soft removing all tasks. If any task is not completed, then none is delete.
+     *
+     * @return {@code true} if all tasks are removed or {@code false} if not.
+     */
     @Override
     public boolean removeAll() {
         List<IdentifiableTask<Object, ?>> notCompletedTasks = entityStorage.stream().filter(task -> !task.isDone()).collect(Collectors.toList());
@@ -49,5 +56,33 @@ public class TaskContainer extends AbstractContainer<Object, IdentifiableTask<Ob
             System.err.println(String.format("Tasks '%s' is not completed", notCompletedTasks));
             return false;
         }
+    }
+
+    public CompletableFuture<?> execute(@NonNull IdentifiableTask<Object, ?> entity) {
+        return entity.execute();
+    }
+
+    /**
+     * Hard removing task. The task is interrupt and delete in any case.
+     *
+     * @param entity task
+     * @return {@code true} if the task is removed or {@code false} if not.
+     */
+    public boolean forceRemove(@NonNull IdentifiableTask<Object, ?> entity) {
+        entity.cancel();
+        if (entity.isCancelled() || entity.isDone())
+            return remove(entity);
+        else return false;
+}
+
+    /**
+     * Hard removing all tasks. All tasks are interrupt and delete in any case.
+     *
+     * @return {@code true} if the task is removed or {@code false} if not.
+     */
+    public boolean forceRemoveAll() {
+        entityStorage.forEach(Task::cancel);
+        entityStorage.removeIf(task -> task.isCancelled() || task.isDone());
+        return entityStorage.isEmpty();
     }
 }

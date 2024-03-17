@@ -16,7 +16,7 @@ public abstract class IdentifiableTask<ID, TYPE> implements Task<TYPE>{
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @Getter
-    protected CompletableFuture<TYPE> completableFuture;
+    protected CompletableFuture<TYPE> completableFuture = new CompletableFuture<>();
 
     public IdentifiableTask(Object id) {
         this.id = id;
