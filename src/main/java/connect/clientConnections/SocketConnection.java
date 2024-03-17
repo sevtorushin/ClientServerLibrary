@@ -2,6 +2,7 @@ package connect.clientConnections;
 
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import utils.ArrayUtils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -17,7 +18,7 @@ public class SocketConnection extends ClientConnection {
 
     public SocketConnection(Socket socket) {
         this.socket = socket;
-        this.endpoint = (InetSocketAddress) socket.getLocalSocketAddress();
+        this.endpoint = (InetSocketAddress) socket.getRemoteSocketAddress();
     }
 
     public SocketConnection(InetSocketAddress endpoint) {
@@ -28,7 +29,11 @@ public class SocketConnection extends ClientConnection {
         this.endpoint = new InetSocketAddress(host, port);
     }
 
-    protected boolean con() throws IOException {
+    protected boolean connect0() throws IOException {
+        if (socket != null && !socket.isClosed()) {
+            isConnected = true;
+            return isConnected;
+        }
         socket = new Socket();
         socket.connect(endpoint);
         isConnected = true;
@@ -37,21 +42,27 @@ public class SocketConnection extends ClientConnection {
 
     @Override
     public boolean disconnect() throws IOException {
-        if (socket != null) {
+        if (this.socket != null) {
             socket.close();
             isConnected = false;
         }
-        return !isConnected();
+        return !isConnected;
     }
 
     @Override
     protected int read0(ByteBuffer buffer) throws IOException {
-        return socket.getInputStream().read(buffer.array());
+        int bytes = socket.getInputStream().read(buffer.array());
+        if (bytes == -1)
+            return bytes;
+        buffer.position(bytes);
+        return bytes;
     }
 
     @Override
     protected void write0(ByteBuffer buffer) throws IOException {
-        socket.getOutputStream().write(buffer.array());
+        buffer.flip();
+        byte[] b = ArrayUtils.toArrayAndTrim(buffer);
+        socket.getOutputStream().write(b);
     }
 
     @Override

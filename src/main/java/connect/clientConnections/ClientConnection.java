@@ -44,7 +44,7 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
 
     private static final Logger log = LogManager.getLogger(ClientConnection.class.getSimpleName());
 
-    protected abstract boolean con() throws IOException;
+    protected abstract boolean connect0() throws IOException;
 
     protected abstract int read0(ByteBuffer buffer) throws IOException;
 
@@ -66,7 +66,7 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
             throw new IllegalStateException("Client already connected");
         }
         try {
-            if (con()) {
+            if (connect0()) {
                 log.info(String.format("Connected to server endpoint %s:%d",
                         endpoint.getHostString(), endpoint.getPort()));
             } else {
@@ -96,7 +96,7 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
                 log.info(String.format("Reconnect to server endpoint %s:%d",
                         endpoint.getHostString(), endpoint.getPort()));
                 try {
-                    if (con()) {
+                    if (connect0()) {
                         log.info(String.format("Connected to server endpoint %s:%d",
                                 endpoint.getHostString(), endpoint.getPort()));
                     }
@@ -118,48 +118,54 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
     }
 
     @Override
-    public int read(ByteBuffer buffer) {
+    public int read(ByteBuffer buffer) throws IOException {
         if (!isConnected) {
-            log.trace(String.format("Reading impossible from %s:%d, client is not connected",
-                    endpoint.getHostString(), endpoint.getPort()));
-            return 0;
+            log.trace(String.format("Reading impossible from %s:%d/%d, client is not connected",
+                    endpoint.getHostString(), getRemotePort(), getLocalPort()));
+            throw new IOException("Client is not connected");
         }
         int bytes;
         try {
             buffer.clear();
             bytes = read0(buffer);
-            log.trace(String.format("Reading successful from %s:%d", endpoint.getHostString(), endpoint.getPort()));
+            if (bytes == -1)
+                throw new IOException("Channel reached end of stream");
+            else
+                log.trace(String.format("Reading successful from %s:%d/%d",
+                        endpoint.getHostString(), getRemotePort(), getLocalPort()));
         } catch (IOException e) {
-            try {
-                log.warn(String.format("Client %s:%d disconnected", getEndpoint().getHostString(), getEndpoint().getPort()));
-                disconnect();
-            } catch (IOException ioe) {
-                log.error(String.format("Closing of socket error for client %s", this), ioe);
-            }
-            reconnect();
-            return 0;
+            handleReadWriteException();
+            throw new IOException(e);
         }
         return bytes;
     }
 
     @Override
-    public void write(ByteBuffer buffer) {
+    public void write(ByteBuffer buffer) throws IOException {
         if (!isConnected) {
-            log.trace(String.format("Writing impossible for client %s, client is not connected", this));
-            return;
+            log.trace(String.format("Writing impossible to %s:%d/%d, client is not connected",
+                    endpoint.getHostString(), getLocalPort(), getRemotePort()));
+            throw new IOException("Client is not connected");
         }
         try {
             write0(buffer);
-            log.trace(String.format("Writing successful for client %s", this));
+            log.trace(String.format("Writing successful to %s:%d/%d",
+                    endpoint.getHostString(), getLocalPort(), getRemotePort()));
         } catch (IOException e) {
-            try {
-                log.warn(String.format("Client %s:%d disconnected", getEndpoint().getHostString(), getEndpoint().getPort()));
-                disconnect();
-            } catch (IOException ioe) {
-                log.error(String.format("Closing of socket error for client %s", this), ioe);
-            }
-            reconnect();
+            handleReadWriteException();
+            throw new IOException(e);
         }
+    }
+
+    private void handleReadWriteException() {
+        try {
+            log.warn(String.format("Client %s:%d/%d disconnected",
+                    endpoint.getHostString(), getLocalPort(), getRemotePort()));
+            disconnect();
+        } catch (IOException ioe) {
+            log.error(String.format("Closing of socket error for client %s", this), ioe);
+        }
+        reconnect();
     }
 
     @Override

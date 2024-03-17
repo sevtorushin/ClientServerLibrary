@@ -17,10 +17,23 @@ public class ArrayUtils {
         return result;
     }
 
-    public static byte[] arrayTrim(ByteBuffer buffer) {
-        int size = buffer.position();
+//    public static byte[] arrayTrim(ByteBuffer buffer) {
+//        int size = buffer.position();
+//        byte[] result = new byte[size];
+//        System.arraycopy(buffer.array(), 0, result, 0, size);
+//        return result;
+//    }
+
+    /**
+     * Converts the source buffer to a byte array, excluding null bytes at the end of the buffer.
+     * The source buffer must have position=0 and a limit equal to the length of the resulting byte array
+     * @param buffer current buffer.
+     * @return Truncated byte array.
+     */
+    public static byte[] toArrayAndTrim(ByteBuffer buffer) {
+        int size = buffer.limit();
         byte[] result = new byte[size];
-        System.arraycopy(buffer.array(), 0, result, 0, size);
+        buffer.get(result);
         return result;
     }
 

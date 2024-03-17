@@ -49,6 +49,7 @@ public class MessageStorage implements Stored<ByteBuffer> {
     }
 
     public ByteBuffer retrieveFromStorage() {
+        tempBuffer.flip();
         int limit = tempBuffer.limit();
         ByteBuffer copy = ByteBuffer.allocate(limit);
         copy.put(tempBuffer);

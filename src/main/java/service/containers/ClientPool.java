@@ -13,6 +13,8 @@ public class ClientPool extends AbstractNetEntityPool<Object, Client>{
 
     @Override
     public boolean finalizeEntity(@NonNull Client client) {
+        //todo завершить все задачи и очистить TaskContainer
+        //todo удалить все обработчики и очистить HandlerContainer
         return client.disconnect();
     }
 

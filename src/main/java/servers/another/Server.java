@@ -10,6 +10,7 @@ import service.DefaultClientManager;
 import service.containers.AbstractNetEntityPool;
 import service.containers.ByteBufferHandlerContainer;
 import service.containers.ClientPool;
+import service.containers.ExtendedClientPool;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -36,8 +37,8 @@ public class Server implements Runnable, Net {
     private final ExecutorService executor;
 
     public Server(Integer port) throws IOException {
-        this.connection = new ServerSocketChannelConnection(port);
-        this.clientPool = new ClientPool();
+        this.connection = new ServerSocketChannelConnection(port, true);
+        this.clientPool = new ExtendedClientPool();
         this.executor = Executors.newCachedThreadPool();
         this.name = getClass().getSimpleName();
         this.id = ++serverCount;
@@ -46,27 +47,32 @@ public class Server implements Runnable, Net {
     @Override
     public void run() {
         executor.submit(this::checkAliveClient);
-        while (!isStopped()) {
+        while (!stopped) {
+            SocketChannel clientSocket = null;
             try {
-                SocketChannel clientSocket = connection.accept();
+                clientSocket = connection.accept();
                 if (clientSocket != null) {
                     connectClient(clientSocket);
                 }
-                Thread.sleep(500);
-            } catch (InterruptedException | IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
 
     private void checkAliveClient() { //todo мб в отдельный класс?
+        ByteBuffer buffer = ByteBuffer.wrap("\r\n".getBytes());
+        buffer.position(2);
         while (!stopped) {
             try {
                 List<Client> clientList = clientPool.getAll();
                 clientList.forEach(client -> {
-                    client.sendMessage(ByteBuffer.wrap("\r\n".getBytes()));
-                    if (!client.isConnected())
-                        clientPool.remove(client);
+                    try {
+                        client.sendMessage(buffer);
+                    } catch (IOException e) {
+                        if (!client.isConnected())
+                            clientPool.remove(client);
+                    }
                 });
                 Thread.sleep(5000);
             } catch (InterruptedException e) {
@@ -87,21 +93,27 @@ public class Server implements Runnable, Net {
     }
 
     private Client connectClient(SocketChannel clientSocket) {
-        Client connectedClient = new ExtendedClient(clientSocket);
-        if (clientPool.addNew(connectedClient));
-            connectedClient.connect();
+        Client connectedClient = null;
+        try {
+            clientSocket.configureBlocking(false);
+            connectedClient = new ExtendedClient(clientSocket);
+            if (clientPool.addNew(connectedClient))
+                connectedClient.connect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return connectedClient;
     }
 
-    public int getLocalPort(){
+    public int getLocalPort() {
         return connection.getPort();
     }
 
-    public ByteBuffer receiveMessage(@NonNull Client client) {
-        return client.receiveMessage();
+    public int receiveMessage(@NonNull Client client, @NonNull ByteBuffer buffer) throws IOException {
+        return client.receiveMessage(buffer);
     }
 
-    public void sendMessage(Client client, ByteBuffer message){
+    public void sendMessage(@NonNull Client client, @NonNull ByteBuffer message) throws IOException {
         client.sendMessage(message);
     }
 }

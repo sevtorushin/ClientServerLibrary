@@ -89,7 +89,7 @@ public class SimpleClient implements Cached<byte[]> {
                     dropTransferTask();
 //                    throw new IOException();
                 }
-                byte[] bytes = ArrayUtils.arrayTrim(buffer);
+                byte[] bytes = ArrayUtils.toArrayAndTrim(buffer);
                 if (!handlers.isEmpty())
                     handlers.forEach((s, consumer) -> consumer.accept(bytes));
                 buffer.clear();

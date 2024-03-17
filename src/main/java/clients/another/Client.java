@@ -18,8 +18,8 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-@ToString(exclude = {"storage"})
-@EqualsAndHashCode(exclude = {"storage"})
+@ToString
+@EqualsAndHashCode
 public class Client implements AutoCloseable, Net {
     @Getter
     @Setter
@@ -30,34 +30,29 @@ public class Client implements AutoCloseable, Net {
     private static int clientCount = 0;
     @Getter
     protected ClientConnection clientConnection;
-    private final MessageStorage storage;
 
     private static final Logger log = LogManager.getLogger(Client.class.getSimpleName());
 
     public Client(SocketChannel socketChannel) {
         this.clientConnection = new SocketChannelConnection(socketChannel);
-        this.storage = new MessageStorage();
         this.name = getClass().getSimpleName();
         this.id = ++clientCount;
     }
 
     public Client(Socket socket) {
         this.clientConnection = new SocketConnection(socket);
-        this.storage = new MessageStorage();
         this.name = getClass().getSimpleName();
         this.id = ++clientCount;
     }
 
     public Client(InetSocketAddress endpoint) {
         this.clientConnection = new SocketChannelConnection(endpoint);
-        this.storage = new MessageStorage();
         this.name = getClass().getSimpleName();
         this.id = ++clientCount;
     }
 
     public Client(String host, int port) {
         this.clientConnection = new SocketChannelConnection(host, port);
-        this.storage = new MessageStorage();
         this.name = getClass().getSimpleName();
         this.id = ++clientCount;
     }
@@ -86,18 +81,11 @@ public class Client implements AutoCloseable, Net {
         return clientConnection.isConnected();
     }
 
-    public ByteBuffer receiveMessage() {
-        ByteBuffer storageTempBuffer = storage.getTempBuffer();
-        int n = clientConnection.read(storageTempBuffer);
-        storageTempBuffer.flip();
-        if (n < 1) {
-            return storage.getEmptyBuffer();
-        }
-
-        return storage.retrieveFromStorage();
+    public int receiveMessage(ByteBuffer buffer) throws IOException {
+        return clientConnection.read(buffer);
     }
 
-    public void sendMessage(ByteBuffer message) {
+    public void sendMessage(ByteBuffer message) throws IOException {
         clientConnection.write(message);
     }
 

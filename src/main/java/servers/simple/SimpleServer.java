@@ -152,7 +152,7 @@ public class SimpleServer implements Runnable, Cached<byte[]> {
                             rejectSocket(sc);
                             break;
                         }
-                        byte[] bytes = ArrayUtils.arrayTrim(buffer);
+                        byte[] bytes = ArrayUtils.toArrayAndTrim(buffer);
                         if (!handlers.isEmpty())
                             handlers.forEach((s, consumer) -> consumer.accept(bytes));
                         buffer.clear();
