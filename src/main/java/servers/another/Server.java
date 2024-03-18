@@ -106,6 +106,7 @@ public class Server implements Runnable, Net {
         }
         stopped = true;
         connection.close();
+        log.info(String.format("%s stopped", this));
     }
 
     private Client connectClient(SocketChannel clientSocket) {
