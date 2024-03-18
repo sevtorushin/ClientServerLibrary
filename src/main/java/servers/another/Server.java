@@ -2,11 +2,15 @@ package servers.another;
 
 import clients.another.Client;
 import clients.another.ExtendedClient;
+import connect.clientConnections.ClientConnection;
 import connect.serverConnections.ServerConnection;
 import connect.serverConnections.ServerSocketChannelConnection;
 import entity.Net;
 import lombok.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import service.DefaultClientManager;
+import service.ReadProperties;
 import service.containers.AbstractNetEntityPool;
 import service.containers.ByteBufferHandlerContainer;
 import service.containers.ClientPool;
@@ -19,8 +23,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@ToString(exclude = {"stopped", "clientPool", "executor"})
-@EqualsAndHashCode(exclude = {"stopped", "clientPool", "executor"})
+@ToString(exclude = {"stopped", "clientPool", "executor", "propertiesReader"})
+@EqualsAndHashCode(exclude = {"stopped", "clientPool", "executor", "propertiesReader"})
 public class Server implements Runnable, Net {
     @Getter
     @Setter
@@ -35,6 +39,9 @@ public class Server implements Runnable, Net {
     @Getter
     private final AbstractNetEntityPool<Object, Client> clientPool;
     private final ExecutorService executor;
+    private final ReadProperties propertiesReader = ReadProperties.getInstance();
+
+    private static final Logger log = LogManager.getLogger(Server.class.getSimpleName());
 
     public Server(Integer port) throws IOException {
         this.connection = new ServerSocketChannelConnection(port, true);
@@ -46,21 +53,24 @@ public class Server implements Runnable, Net {
 
     @Override
     public void run() {
+        log.info(String.format("%s is running", this));
         executor.submit(this::checkAliveClient);
         while (!stopped) {
-            SocketChannel clientSocket = null;
+            SocketChannel clientSocket;
             try {
                 clientSocket = connection.accept();
                 if (clientSocket != null) {
                     connectClient(clientSocket);
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("Error of 'accept' method", e);
             }
         }
     }
 
-    private void checkAliveClient() { //todo мб в отдельный класс?
+    private void checkAliveClient() {
+        log.debug("Check connections for connected clients started");
+        long checkPeriod = Long.parseLong(propertiesReader.getValue("server.checkingClientTime"));
         ByteBuffer buffer = ByteBuffer.wrap("\r\n".getBytes());
         buffer.position(2);
         while (!stopped) {
@@ -70,13 +80,16 @@ public class Server implements Runnable, Net {
                     try {
                         client.sendMessage(buffer);
                     } catch (IOException e) {
-                        if (!client.isConnected())
+                        if (!client.isConnected()) {
                             clientPool.remove(client);
+                            log.debug(String.format("%s removed from pool", client));
+                        } else
+                            log.warn(String.format("Failed checking for %s. %s is still connected", client, client));
                     }
                 });
-                Thread.sleep(5000);
+                Thread.sleep(checkPeriod);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                log.debug("Thread is interrupted", e);
             }
         }
     }
@@ -87,8 +100,11 @@ public class Server implements Runnable, Net {
     }
 
     public void stop() throws IOException {
+        if (!clientPool.removeAll()) {
+            log.warn(String.format("Failed to remove all clients from the pool. %s not stopped", this));
+            return;
+        }
         stopped = true;
-        clientPool.removeAll();
         connection.close();
     }
 
@@ -99,8 +115,10 @@ public class Server implements Runnable, Net {
             connectedClient = new ExtendedClient(clientSocket);
             if (clientPool.addNew(connectedClient))
                 connectedClient.connect();
+            else
+                log.warn(String.format("%s not added to pool", connectedClient));
         } catch (IOException e) {
-            e.printStackTrace();
+            log.warn(String.format("Error switching %s to non-blocking mode", clientSocket));
         }
         return connectedClient;
     }

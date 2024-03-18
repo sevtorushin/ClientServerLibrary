@@ -9,7 +9,7 @@ import java.nio.channels.SocketChannel;
 
 @ToString
 @EqualsAndHashCode
-public abstract class ServerConnection {
+public abstract class ServerConnection implements AutoCloseable{
 
     @Getter
     private final Integer port;
