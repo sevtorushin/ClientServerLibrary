@@ -3,6 +3,8 @@ package clients.another;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import service.containers.TaskContainer;
 import service.containers.AbstractHandlerContainer;
 import service.containers.ByteBufferHandlerContainer;
@@ -19,6 +21,8 @@ public class ExtendedClient extends Client {
     private final AbstractHandlerContainer<Object, ByteBuffer> handlerContainer;
     @Getter
     private final TaskContainer taskContainer;
+
+    private static final Logger log = LogManager.getLogger(ExtendedClient.class.getSimpleName());
 
     public ExtendedClient(SocketChannel socketChannel) {
         super(socketChannel);
@@ -47,10 +51,11 @@ public class ExtendedClient extends Client {
     @Override
     public void close() {
         if (!taskContainer.forceRemoveAll()) {
-            System.err.println(String.format("Don't remove all tasks for %s. Client not closed", this));
+            log.warn(String.format("Don't remove all tasks for %s. Client not closed", this));
             return;
         }
         this.handlerContainer.removeAll();
         super.close();
+
     }
 }
