@@ -10,7 +10,7 @@ import java.io.IOException;
 public class ServerPool extends AbstractNetEntityPool<Object, Server> {
 
     @Override
-    public boolean finalizeEntity(@NonNull Server server) {
+    protected boolean finalizeEntity(@NonNull Server server) {
         try {
             server.stop();
             return true;
@@ -20,14 +20,12 @@ public class ServerPool extends AbstractNetEntityPool<Object, Server> {
     }
 
     @Override
-    public Object getId(@NonNull Server server) {
-        return server.getId();
+    protected Integer getLocalPort(@NonNull Server netEntity) {
+        return netEntity.getLocalPort();
     }
 
-    public Server getOnLocalPort(@NonNull Integer localPort) {
-        return entityStorage.stream()
-                .filter(server -> server.getLocalPort() == localPort)
-                .findFirst()
-                .orElse(null);
+    @Override
+    protected Object getId(@NonNull Server server) {
+        return server.getId();
     }
 }

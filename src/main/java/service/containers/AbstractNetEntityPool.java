@@ -1,5 +1,6 @@
 package service.containers;
 
+import clients.another.Client;
 import entity.Net;
 import lombok.NonNull;
 
@@ -45,5 +46,14 @@ public abstract class AbstractNetEntityPool<I, E extends Net> extends AbstractCo
         return entityStorage.isEmpty();
     }
 
-    public abstract boolean finalizeEntity(@NonNull E netEntity);
+    protected abstract boolean finalizeEntity(@NonNull E netEntity);
+
+    protected abstract Integer getLocalPort(@NonNull E netEntity);
+
+    public E getOnLocalPort(@NonNull Integer localPort){
+        return entityStorage.stream()
+                .filter(netEntity -> getLocalPort(netEntity) == localPort)
+                .findFirst()
+                .orElse(null);
+    }
 }
