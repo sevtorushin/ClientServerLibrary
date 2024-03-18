@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class ExtendedClientPool extends ClientPool {
-    private Set<Client> newClients;
+    private final Set<Client> newClients;
 
     public ExtendedClientPool(int DEFAULT_SOCKET_POOL_SIZE) {
         super(DEFAULT_SOCKET_POOL_SIZE);

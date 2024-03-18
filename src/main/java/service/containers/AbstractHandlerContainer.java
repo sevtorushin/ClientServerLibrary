@@ -6,7 +6,7 @@ import service.IdentifiableMessageHandler;
 
 import java.util.*;
 
-public abstract class AbstractHandlerContainer<I, T> extends AbstractContainer<I, IdentifiableMessageHandler<I, T>> { //todo мб убрать I и заменить на Object?
+public abstract class AbstractHandlerContainer<I, T> extends AbstractContainer<I, IdentifiableMessageHandler<I, T>> {
 
     protected AbstractHandlerContainer() {
         super(new HashSet<>());

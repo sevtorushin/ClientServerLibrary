@@ -35,7 +35,6 @@ public abstract class AbstractNetEntityPool<I, E extends Net> extends AbstractCo
         if (finalizeEntity(netEntity))
             return super.remove(netEntity);
         else {
-            System.err.println(String.format("%s disconnect error", netEntity));
             return false;
         }
     }
