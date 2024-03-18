@@ -14,7 +14,7 @@ public class ClientPool extends AbstractNetEntityPool<Object, Client>{
     @Override
     public boolean finalizeEntity(@NonNull Client client) {
         client.close();
-        return client.isConnected();
+        return !client.isConnected();
     }
 
     @Override
