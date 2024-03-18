@@ -14,8 +14,10 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-@ToString(callSuper = true)
-@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true,
+        exclude = {"handlerContainer", "taskContainer"})
+@EqualsAndHashCode(callSuper = true,
+        exclude = {"handlerContainer", "taskContainer"})
 public class ExtendedClient extends Client {
     @Getter
     private final AbstractHandlerContainer<Object, ByteBuffer> handlerContainer;
