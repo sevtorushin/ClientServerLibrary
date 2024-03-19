@@ -58,6 +58,5 @@ public class ExtendedClient extends Client {
         }
         this.handlerContainer.removeAll();
         super.close();
-
     }
 }

@@ -21,7 +21,7 @@ public class SimpleClient implements Cached<byte[]> {
     private SocketChannel channel;
     private final InetSocketAddress endpoint;
     private final LinkedBlockingQueue<byte[]> cache = new LinkedBlockingQueue<>();
-    private volatile Map<String, Consumer<byte[]>> handlers = new ConcurrentHashMap<>();
+    private final Map<String, Consumer<byte[]>> handlers = new ConcurrentHashMap<>();
     private final Selector selector;
     private boolean isConnected;
     private final int TEMP_BUFFER_SIZE = 512;

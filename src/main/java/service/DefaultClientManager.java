@@ -56,6 +56,6 @@ public class DefaultClientManager extends NetEntityManager<Client, ByteBuffer> {
     }
 
     public Client getClient(Integer localPort) {
-        return ((ClientPool) entityPool).getOnLocalPort(localPort);
+        return entityPool.getOnLocalPort(localPort);
     }
 }

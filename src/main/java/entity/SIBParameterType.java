@@ -23,8 +23,8 @@ public enum SIBParameterType {
     AZD(68, "AzD");
 
 
-    private int bytePerformance;
-    private String name;
+    private final int bytePerformance;
+    private final String name;
 
     SIBParameterType(int bytePerformance, String name) {
         this.bytePerformance = bytePerformance;

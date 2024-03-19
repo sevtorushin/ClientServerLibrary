@@ -26,7 +26,7 @@ public class DefaultServerManager extends NetEntityManager<Server, ByteBuffer> {
     }
 
     public Server getServer(Integer localPort) {
-        return ((ServerPool) entityPool).getOnLocalPort(localPort);
+        return entityPool.getOnLocalPort(localPort);
     }
 
 }
