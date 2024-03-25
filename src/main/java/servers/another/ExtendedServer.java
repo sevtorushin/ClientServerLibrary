@@ -30,6 +30,12 @@ public class ExtendedServer extends Server{
         this.taskContainer = new TaskContainer();
     }
 
+    public ExtendedServer(Integer port, boolean checkClients) throws IOException {
+        super(port, checkClients);
+        this.handlerContainer = new ByteBufferHandlerContainer<>();
+        this.taskContainer = new TaskContainer();
+    }
+
     @Override
     public void stop() throws IOException {
         if (!taskContainer.forceRemoveAll()) {

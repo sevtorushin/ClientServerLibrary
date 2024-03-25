@@ -26,6 +26,22 @@ public class ExtendedClientPool extends ClientPool {
         return isSuccessful;
     }
 
+    @Override
+    public boolean remove(@NonNull Client netEntity) {
+        boolean isSuccessful = super.remove(netEntity);
+        if (isSuccessful)
+            newClients.remove(netEntity);
+        return isSuccessful;
+    }
+
+    @Override
+    public boolean removeAll() {
+        boolean isSuccessful = super.removeAll();
+        if (isSuccessful)
+            newClients.clear();
+        return isSuccessful;
+    }
+
     public Client getNewClient() {
         Client newClient = newClients.stream().findFirst().orElse(null);
         newClients.remove(newClient);

@@ -1,6 +1,9 @@
 package service.containers;
 
 import lombok.NonNull;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import servers.another.Server;
 import service.IdentifiableTask;
 import service.Task;
 import service.containers.AbstractContainer;
@@ -11,6 +14,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public class TaskContainer extends AbstractContainer<Object, IdentifiableTask<Object, ?>> {
+
+    private static final Logger log = LogManager.getLogger(TaskContainer.class.getSimpleName());
+
     public TaskContainer() {
         super(new HashSet<>());
     }
@@ -28,10 +34,15 @@ public class TaskContainer extends AbstractContainer<Object, IdentifiableTask<Ob
      */
     @Override
     public boolean remove(@NonNull IdentifiableTask<Object, ?> entity) {
-        if (entity.isDone())
-            return super.remove(entity);
-        else {
-            System.err.println(String.format("Task '%s' is not completed", entity));
+        if (entity.isDone()) {
+            boolean isSuccessful = super.remove(entity);
+            if (isSuccessful)
+                log.debug(String.format("Task '%s' removed successful", entity));
+            else
+                log.debug(String.format("Task '%s' is not removed", entity));
+            return isSuccessful;
+        } else {
+            log.warn(String.format("Task '%s' is not completed", entity));
             return false;
         }
     }
@@ -49,9 +60,17 @@ public class TaskContainer extends AbstractContainer<Object, IdentifiableTask<Ob
      */
     @Override
     public boolean removeAll() {
-        List<IdentifiableTask<Object, ?>> notCompletedTasks = entityStorage.stream().filter(task -> !task.isDone()).collect(Collectors.toList());
-        if (notCompletedTasks.isEmpty())
-            return super.removeAll();
+        List<IdentifiableTask<Object, ?>> notCompletedTasks = entityStorage.stream()
+                .filter(task -> !task.isDone())
+                .collect(Collectors.toList());
+        if (notCompletedTasks.isEmpty()) {
+            boolean isSuccessful = super.removeAll();
+            if (isSuccessful)
+                log.debug("All tasks removed successful");
+            else
+                log.debug("All tasks is not removed");
+            return isSuccessful;
+        }
         else {
             System.err.println(String.format("Tasks '%s' is not completed", notCompletedTasks));
             return false;
@@ -72,8 +91,11 @@ public class TaskContainer extends AbstractContainer<Object, IdentifiableTask<Ob
         entity.cancel();
         if (entity.isCancelled() || entity.isDone())
             return remove(entity);
-        else return false;
-}
+        else {
+            log.debug(String.format("Delete %s impossible", entity));
+            return false;
+        }
+    }
 
     /**
      * Hard removing all tasks. All tasks are interrupt and delete in any case.
@@ -83,6 +105,11 @@ public class TaskContainer extends AbstractContainer<Object, IdentifiableTask<Ob
     public boolean forceRemoveAll() {
         entityStorage.forEach(Task::cancel);
         entityStorage.removeIf(task -> task.isCancelled() || task.isDone());
-        return entityStorage.isEmpty();
+        boolean isSuccessful = entityStorage.isEmpty();
+        if (isSuccessful)
+            log.debug("All tasks delete successful");
+        else
+            log.debug("Fail delete all tasks");
+        return isSuccessful;
     }
 }

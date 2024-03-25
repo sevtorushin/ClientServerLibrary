@@ -1,4 +1,4 @@
-package connect.serverConnections;
+package connection.serverConnections;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -21,4 +21,6 @@ public abstract class ServerConnection implements AutoCloseable{
     public abstract SocketChannel accept() throws IOException;
 
     public abstract void close() throws IOException;
+
+    public abstract boolean isClosed();
 }

@@ -1,12 +1,9 @@
-package connect.clientConnections;
+package connection.clientConnections;
 
-import connect.Reconnectable;
-import connect.TCPConnection;
-import connect.Transmitter;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import connection.Reconnectable;
+import connection.TCPConnection;
+import connection.Transmitter;
+import lombok.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import service.ReadProperties;
@@ -14,35 +11,45 @@ import service.ReadProperties;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-@ToString(exclude = {"isConnected", "lock", "reconnectPeriod", "reconnectionMode"})
+@ToString(onlyExplicitlyIncluded = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@NoArgsConstructor
 public abstract class ClientConnection implements TCPConnection, Reconnectable, Transmitter<ByteBuffer>, AutoCloseable {
-    volatile boolean isConnected;
-    private final ReentrantLock lock = new ReentrantLock();
+    @Getter
+    protected volatile boolean isConnected;
+    @Getter
+    protected volatile boolean isClosed;
     @Getter
     @EqualsAndHashCode.Include
+    @ToString.Include
     InetSocketAddress endpoint;
     @Getter
     @Setter
-    private long reconnectPeriod;
+    private long reconnectionPeriod;
     @Getter
     @Setter
     private boolean reconnectionMode;
+    private final ExecutorService executor;
 
-    public ClientConnection() {
+    private static final Logger log = LogManager.getLogger(ClientConnection.class.getSimpleName());
+
+    {
         ReadProperties properties = ReadProperties.getInstance();
-        reconnectPeriod = Long.parseLong(properties.getValue("connection.reconnectPeriod"));
+        this.reconnectionPeriod = Long.parseLong(properties.getValue("connection.reconnectPeriod"));
+        this.executor = Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r);
+            t.setName("Reconnect");
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     public ClientConnection(boolean reconnectionMode) {
-        ReadProperties properties = ReadProperties.getInstance();
-        reconnectPeriod = Long.parseLong(properties.getValue("connection.reconnectPeriod"));
         this.reconnectionMode = reconnectionMode;
     }
-
-    private static final Logger log = LogManager.getLogger(ClientConnection.class.getSimpleName());
 
     protected abstract boolean connect0() throws IOException;
 
@@ -54,12 +61,8 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
 
     public abstract int getRemotePort();
 
-    public boolean isConnected() {
-        return isConnected;
-    }
-
     @Override
-    public boolean connect() throws IOException {
+    public synchronized boolean connect() throws IOException {
         if (isConnected) {
             log.warn(String.format("Client already connected to endpoint %s:%d",
                     endpoint.getHostString(), endpoint.getPort()));
@@ -69,6 +72,7 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
             if (connect0()) {
                 log.info(String.format("Connected to server endpoint %s:%d",
                         endpoint.getHostString(), endpoint.getPort()));
+                isClosed = false;
             } else {
                 log.warn(String.format("Not connected to server endpoint %s:%d",
                         endpoint.getHostString(), endpoint.getPort()));
@@ -88,10 +92,9 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
 
     @Override
     public void reconnect() {
-        if (!reconnectionMode)
+        if (!reconnectionMode || isClosed)
             return;
-        Thread reconnectThread = new Thread(() -> {
-            lock.tryLock();
+        executor.submit(() -> {
             while (!isConnected) {
                 log.info(String.format("Reconnect to server endpoint %s:%d",
                         endpoint.getHostString(), endpoint.getPort()));
@@ -104,21 +107,17 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
                     log.warn(String.format("Connection to server endpoint %s:%d failed",
                             endpoint.getHostString(), endpoint.getPort()));
                     try {
-                        Thread.sleep(reconnectPeriod);
+                        Thread.sleep(reconnectionPeriod);
                     } catch (InterruptedException ie) {
                         log.error("This thread interrupted. Reconnect error");
                     }
                 }
             }
-            lock.unlock();
         });
-        reconnectThread.setName("ReconnectThread");
-        reconnectThread.setDaemon(true);
-        reconnectThread.start();
     }
 
     @Override
-    public int read(ByteBuffer buffer) throws IOException {
+    public synchronized int read(ByteBuffer buffer) throws IOException {
         if (!isConnected) {
             log.trace(String.format("Reading impossible from %s:%d/%d, client is not connected",
                     endpoint.getHostString(), getRemotePort(), getLocalPort()));
@@ -126,7 +125,6 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
         }
         int bytes;
         try {
-            buffer.clear();
             bytes = read0(buffer);
             if (bytes == -1)
                 throw new IOException("Channel reached end of stream");
@@ -141,7 +139,7 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
     }
 
     @Override
-    public void write(ByteBuffer buffer) throws IOException {
+    public synchronized void write(ByteBuffer buffer) throws IOException {
         if (!isConnected) {
             log.trace(String.format("Writing impossible to %s:%d/%d, client is not connected",
                     endpoint.getHostString(), getLocalPort(), getRemotePort()));
@@ -170,8 +168,10 @@ public abstract class ClientConnection implements TCPConnection, Reconnectable, 
 
     @Override
     public void close() throws IOException {
-        if (disconnect())
-            log.info(String.format("Disconnect from server endpoint %s:%d",
-                    endpoint.getHostString(), endpoint.getPort()));
+        if (disconnect()) {
+            log.info(String.format("Client %s:%d/%d is closed",
+                    endpoint.getHostString(), getLocalPort(), getRemotePort()));
+            isClosed = true;
+        }
     }
 }

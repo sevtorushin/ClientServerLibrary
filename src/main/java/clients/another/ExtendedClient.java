@@ -26,28 +26,25 @@ public class ExtendedClient extends Client {
 
     private static final Logger log = LogManager.getLogger(ExtendedClient.class.getSimpleName());
 
-    public ExtendedClient(SocketChannel socketChannel) {
-        super(socketChannel);
+    {
         this.handlerContainer = new ByteBufferHandlerContainer<>();
         this.taskContainer = new TaskContainer();
+    }
+
+    public ExtendedClient(SocketChannel socketChannel) {
+        super(socketChannel);
     }
 
     public ExtendedClient(Socket socket) {
         super(socket);
-        this.handlerContainer = new ByteBufferHandlerContainer<>();
-        this.taskContainer = new TaskContainer();
     }
 
     public ExtendedClient(InetSocketAddress endpoint) {
         super(endpoint);
-        this.handlerContainer = new ByteBufferHandlerContainer<>();
-        this.taskContainer = new TaskContainer();
     }
 
     public ExtendedClient(String host, int port) {
         super(host, port);
-        this.handlerContainer = new ByteBufferHandlerContainer<>();
-        this.taskContainer = new TaskContainer();
     }
 
     @Override

@@ -9,6 +9,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
+@Deprecated
 public class DefaultServerManager extends NetEntityManager<Server, ByteBuffer> {
 
     public DefaultServerManager(AbstractNetEntityPool<Object, Server> entityPool) {

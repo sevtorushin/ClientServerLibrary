@@ -1,8 +1,8 @@
 package clients.another;
 
-import connect.clientConnections.ClientConnection;
-import connect.clientConnections.SocketChannelConnection;
-import connect.clientConnections.SocketConnection;
+import connection.clientConnections.ClientConnection;
+import connection.clientConnections.SocketChannelConnection;
+import connection.clientConnections.SocketConnection;
 import entity.Net;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -10,7 +10,6 @@ import lombok.Setter;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import service.containers.MessageStorage;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -33,28 +32,25 @@ public class Client implements AutoCloseable, Net {
 
     private static final Logger log = LogManager.getLogger(Client.class.getSimpleName());
 
-    public Client(SocketChannel socketChannel) {
-        this.clientConnection = new SocketChannelConnection(socketChannel);
+    {
         this.name = getClass().getSimpleName();
         this.id = ++clientCount;
+    }
+
+    public Client(SocketChannel socketChannel) {
+        this.clientConnection = new SocketChannelConnection(socketChannel);
     }
 
     public Client(Socket socket) {
         this.clientConnection = new SocketConnection(socket);
-        this.name = getClass().getSimpleName();
-        this.id = ++clientCount;
     }
 
     public Client(InetSocketAddress endpoint) {
         this.clientConnection = new SocketChannelConnection(endpoint);
-        this.name = getClass().getSimpleName();
-        this.id = ++clientCount;
     }
 
     public Client(String host, int port) {
         this.clientConnection = new SocketChannelConnection(host, port);
-        this.name = getClass().getSimpleName();
-        this.id = ++clientCount;
     }
 
     public boolean connect() {
@@ -79,6 +75,10 @@ public class Client implements AutoCloseable, Net {
 
     public boolean isConnected() {
         return clientConnection.isConnected();
+    }
+
+    public boolean isClosed() {
+        return clientConnection.isClosed();
     }
 
     public int receiveMessage(ByteBuffer buffer) throws IOException {

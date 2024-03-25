@@ -8,6 +8,7 @@ import service.containers.TaskContainer;
 
 import java.util.*;
 
+@Deprecated
 public abstract class NetEntityManager<NetType extends Net, MessageType> {
 
     protected Map<NetType, LocalContainer> map;

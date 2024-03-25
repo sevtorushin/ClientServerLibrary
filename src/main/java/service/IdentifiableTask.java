@@ -33,7 +33,7 @@ public abstract class IdentifiableTask<ID, TYPE> implements Task<TYPE>{
     }
 
     @Override
-    public boolean cancel(){
-        return completableFuture.cancel(true);
+    public void cancel(){
+        completableFuture.cancel(true);
     }
 }

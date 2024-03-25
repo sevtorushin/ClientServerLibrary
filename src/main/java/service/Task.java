@@ -6,5 +6,5 @@ public interface Task<T> {
     CompletableFuture<T> execute();
     boolean isDone();
     boolean isCancelled();
-    boolean cancel();
+    void cancel();
 }

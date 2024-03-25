@@ -1,4 +1,4 @@
-package connect.clientConnections;
+package connection.clientConnections;
 
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -32,16 +32,18 @@ public class SocketConnection extends ClientConnection {
     protected boolean connect0() throws IOException {
         if (socket != null && !socket.isClosed()) {
             isConnected = true;
+            isClosed = false;
             return isConnected;
         }
         socket = new Socket();
         socket.connect(endpoint);
         isConnected = true;
+        isClosed = false;
         return isConnected;
     }
 
     @Override
-    public boolean disconnect() throws IOException {
+    public synchronized boolean disconnect() throws IOException {
         if (this.socket != null) {
             socket.close();
             isConnected = false;
@@ -51,6 +53,7 @@ public class SocketConnection extends ClientConnection {
 
     @Override
     protected int read0(ByteBuffer buffer) throws IOException {
+        buffer.clear();
         int bytes = socket.getInputStream().read(buffer.array());
         if (bytes == -1)
             return bytes;
@@ -62,7 +65,12 @@ public class SocketConnection extends ClientConnection {
     protected void write0(ByteBuffer buffer) throws IOException {
         buffer.flip();
         byte[] b = ArrayUtils.toArrayAndTrim(buffer);
-        socket.getOutputStream().write(b);
+        try {
+            socket.getOutputStream().write(b);
+        } catch (IOException e) {
+            buffer.position(buffer.limit());
+            throw new IOException(e);
+        }
     }
 
     @Override

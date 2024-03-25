@@ -13,10 +13,8 @@ public class ByteBufferHandlerContainer<I> extends AbstractHandlerContainer<I, B
     public void invokeAll(@NonNull ByteBuffer message) throws HandleException {
         if (message.position() == 0)
             return;
-//        message.flip();
         for (MessageHandler<ByteBuffer> handler : entityStorage) {
             handler.handleMessage(message);
-//            message.rewind();
         }
     }
 

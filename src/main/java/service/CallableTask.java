@@ -2,6 +2,9 @@ package service;
 
 import lombok.*;
 import lombok.experimental.FieldNameConstants;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import service.containers.TaskContainer;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -10,6 +13,8 @@ import java.util.concurrent.CompletableFuture;
 @EqualsAndHashCode(callSuper = true)
 public abstract class CallableTask<T> extends IdentifiableTask<Object, T> implements Callable<T> {
 
+    private static final Logger log = LogManager.getLogger(CallableTask.class.getSimpleName());
+
     public CallableTask(Object id) {
         super(id);
     }
@@ -17,11 +22,13 @@ public abstract class CallableTask<T> extends IdentifiableTask<Object, T> implem
     @Override
     public CompletableFuture<T> execute() {
         completableFuture = CompletableFuture.supplyAsync(() -> {
+            log.debug(String.format("Task %s started", this));
             T ob = null;
             try {
                 ob = call();
+                log.debug(String.format("Task %s completed successful", this));
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error(String.format("Task %s failed", this), e);
             }
             return ob;
         });

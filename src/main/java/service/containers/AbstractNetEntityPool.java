@@ -52,7 +52,7 @@ public abstract class AbstractNetEntityPool<I, E extends Net> extends AbstractCo
 
     public E getOnLocalPort(@NonNull Integer localPort){
         return entityStorage.stream()
-                .filter(netEntity -> getLocalPort(netEntity) == localPort)
+                .filter(netEntity -> getLocalPort(netEntity).equals(localPort))
                 .findFirst()
                 .orElse(null);
     }

@@ -1,10 +1,12 @@
 package utils;
 
+import connection.clientConnections.ClientConnection;
 import exceptions.ConnectClientException;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class ConnectionUtils {
@@ -94,5 +96,16 @@ public class ConnectionUtils {
             throw new IllegalArgumentException(String.format("Specify host %s is not valid", host));
         else
             return true;
+    }
+
+    public static boolean isAliveConnection(ClientConnection connection){
+        ByteBuffer buffer = ByteBuffer.wrap("\r".getBytes());
+        buffer.position(1);
+        try {
+            connection.write(buffer);
+        } catch (IOException e) {
+            return false;
+        }
+        return true;
     }
 }

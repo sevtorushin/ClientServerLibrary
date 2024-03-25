@@ -1,6 +1,4 @@
-package connect.serverConnections;
-
-import service.DefaultClientManager;
+package connection.serverConnections;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -10,7 +8,6 @@ import java.nio.channels.SocketChannel;
 public class ServerSocketChannelConnection extends ServerConnection{
     private final ServerSocketChannel serverSocketChannel;
     private final boolean blockingMode;
-    private final long acceptTimeout = 500;
 
     public ServerSocketChannelConnection(Integer port, boolean blockingMode) throws IOException {
         super(port);
@@ -22,6 +19,7 @@ public class ServerSocketChannelConnection extends ServerConnection{
 
     @Override
     public SocketChannel accept() throws IOException {
+        long acceptTimeout = 1;
         if (!blockingMode)
             pause(acceptTimeout);
         return serverSocketChannel.accept();
@@ -30,6 +28,11 @@ public class ServerSocketChannelConnection extends ServerConnection{
     @Override
     public void close() throws IOException {
         serverSocketChannel.close();
+    }
+
+    @Override
+    public boolean isClosed() {
+        return !serverSocketChannel.isOpen();
     }
 
     private void pause(long time){

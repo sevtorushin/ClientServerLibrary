@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
+@Deprecated
 public class DefaultClientManager extends NetEntityManager<Client, ByteBuffer> {
 
     public DefaultClientManager() {

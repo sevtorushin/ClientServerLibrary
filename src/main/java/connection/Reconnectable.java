@@ -1,4 +1,4 @@
-package connect;
+package connection;
 
 public interface Reconnectable {
     void reconnect();

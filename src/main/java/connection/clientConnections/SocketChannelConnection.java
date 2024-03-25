@@ -1,4 +1,4 @@
-package connect.clientConnections;
+package connection.clientConnections;
 
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -53,17 +53,20 @@ public class SocketChannelConnection extends ClientConnection {
         if (channel != null && channel.isConnected()) {
             key = channel.register(selector, SelectionKey.OP_READ);
             isConnected = true;
+            isClosed = false;
             return isConnected;
         }
         channel = SocketChannel.open();
+        selector = Selector.open();
         isConnected = channel.connect(endpoint);
+        isClosed = !isConnected;
         channel.configureBlocking(false);
         key = channel.register(selector, SelectionKey.OP_READ);
         return isConnected;
     }
 
     @Override
-    public boolean disconnect() throws IOException {
+    public synchronized boolean disconnect() throws IOException {
         if (this.channel != null) {
             channel.close();
             selector.close();
@@ -74,16 +77,24 @@ public class SocketChannelConnection extends ClientConnection {
 
     @Override
     protected int read0(ByteBuffer buffer) throws IOException {
-        selector.select();
-        if (key.isReadable())
+        if (selector.selectNow() < 1)
+            return 0;
+        selector.selectedKeys().clear();
+        if (key.isReadable()) {
+            buffer.clear();
             return channel.read(buffer);
-        else return 0;
+        } else return 0;
     }
 
     @Override
     protected void write0(ByteBuffer buffer) throws IOException {
         buffer.flip();
-        channel.write(buffer);
+        try {
+            channel.write(buffer);
+        } catch (IOException e) {
+            buffer.position(buffer.limit());
+            throw new IOException(e);
+        }
     }
 
     @Override
