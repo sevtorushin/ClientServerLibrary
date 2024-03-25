@@ -1,6 +1,6 @@
 package clients.simple;
 
-import service.Cached;
+import entity.Cached;
 import utils.ArrayUtils;
 
 import java.io.IOException;

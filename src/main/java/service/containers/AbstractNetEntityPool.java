@@ -1,15 +1,9 @@
 package service.containers;
 
-import clients.another.Client;
 import entity.Net;
 import lombok.NonNull;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.stream.Collectors;
 
 public abstract class AbstractNetEntityPool<I, E extends Net> extends AbstractContainer<I, E> {
     private final int DEFAULT_SOCKET_POOL_SIZE;

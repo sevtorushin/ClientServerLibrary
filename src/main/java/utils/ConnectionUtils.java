@@ -57,8 +57,7 @@ public class ConnectionUtils {
         Runnable r = () -> {
             try {
                 byteCount[0] = is.read(buffer);
-            } catch (IOException e) {
-                return;
+            } catch (IOException ignore) {
             }
         };
         Thread t1 = new Thread(r);

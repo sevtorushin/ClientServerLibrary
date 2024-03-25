@@ -1,13 +1,10 @@
 package service;
 
-import clients.another.Client;
 import servers.another.Server;
 import service.containers.AbstractNetEntityPool;
-import service.containers.ServerPool;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 
 @Deprecated
 public class DefaultServerManager extends NetEntityManager<Server, ByteBuffer> {

@@ -3,9 +3,8 @@ package consoleControl;
 import clients.simple.SimpleClientController;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.StringMapMessage;
-import servers.simple.SimpleServerController;
 import picocli.CommandLine;
+import servers.simple.SimpleServerController;
 import utils.ConnectionUtils;
 
 import java.io.IOException;

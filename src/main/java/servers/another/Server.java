@@ -137,7 +137,7 @@ public class Server implements Runnable, Net {
     }
 
     private void connectClient(SocketChannel clientSocket) {
-        Client connectedClient = null;
+        Client connectedClient;
         try {
             clientSocket.configureBlocking(false);
             connectedClient = new ExtendedClient(clientSocket);

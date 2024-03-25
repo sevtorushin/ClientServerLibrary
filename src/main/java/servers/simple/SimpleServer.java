@@ -1,6 +1,6 @@
 package servers.simple;
 
-import service.Cached;
+import entity.Cached;
 import exceptions.ConnectClientException;
 import utils.ArrayUtils;
 
@@ -159,8 +159,7 @@ public class SimpleServer implements Runnable, Cached<byte[]> {
                     }
                 }
             }
-        } catch (InterruptedException e) {
-            return;
+        } catch (InterruptedException ignore) {
         }
     }
 

@@ -1,10 +1,9 @@
 package service;
 
-import lombok.*;
-import lombok.experimental.FieldNameConstants;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import service.containers.TaskContainer;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
