@@ -1,13 +1,18 @@
 package connection.serverConnections;
 
+import service.ReadProperties;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
-public class ServerSocketChannelConnection extends ServerConnection{
+public class ServerSocketChannelConnection extends ServerConnection {
     private final ServerSocketChannel serverSocketChannel;
     private final boolean blockingMode;
+
+    private final ReadProperties propertiesReader = ReadProperties.getInstance();
+    private final long acceptTimeout = Long.parseLong(propertiesReader.getValue("server.ServerSocketChannelConnection.acceptTimeout"));
 
     public ServerSocketChannelConnection(Integer port, boolean blockingMode) throws IOException {
         super(port);
@@ -19,7 +24,6 @@ public class ServerSocketChannelConnection extends ServerConnection{
 
     @Override
     public SocketChannel accept() throws IOException {
-        long acceptTimeout = 1;
         if (!blockingMode)
             pause(acceptTimeout);
         return serverSocketChannel.accept();
@@ -35,7 +39,7 @@ public class ServerSocketChannelConnection extends ServerConnection{
         return !serverSocketChannel.isOpen();
     }
 
-    private void pause(long time){
+    private void pause(long time) {
         try {
             Thread.sleep(time);
         } catch (InterruptedException e) {

@@ -41,7 +41,7 @@ public class Server implements Runnable, Net {
     @EqualsAndHashCode.Include
     private ServerConnection connection;
     @Getter
-    private final AbstractNetEntityPool<Object, Client> clientPool;
+    private AbstractNetEntityPool<Object, Client> clientPool;
     @Getter
     @Setter
     private boolean checkClients;
@@ -61,6 +61,15 @@ public class Server implements Runnable, Net {
     public Server(Integer port, boolean checkClients) throws IOException {
         this(port);
         this.checkClients = checkClients;
+    }
+
+    public Server(Integer port, int maxNumberClient) throws IOException {
+        this(port);
+        this.clientPool = new ExtendedClientPool(maxNumberClient);
+    }
+    public Server(Integer port, boolean checkClients, int maxNumberClient) throws IOException {
+        this(port, checkClients);
+        this.clientPool = new ExtendedClientPool(maxNumberClient);
     }
 
     private void init() throws IOException {

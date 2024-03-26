@@ -1,11 +1,14 @@
 package service.containers;
 
 import entity.Net;
+import lombok.Getter;
 import lombok.NonNull;
+import service.ReadProperties;
 
 import java.util.HashSet;
 
 public abstract class AbstractNetEntityPool<I, E extends Net> extends AbstractContainer<I, E> {
+    @Getter
     private final int DEFAULT_SOCKET_POOL_SIZE;
 
     public AbstractNetEntityPool(int DEFAULT_SOCKET_POOL_SIZE) {
@@ -15,7 +18,8 @@ public abstract class AbstractNetEntityPool<I, E extends Net> extends AbstractCo
 
     public AbstractNetEntityPool() {
         super(new HashSet<>());
-        this.DEFAULT_SOCKET_POOL_SIZE = 100;
+        ReadProperties propertiesReader = ReadProperties.getInstance();
+        this.DEFAULT_SOCKET_POOL_SIZE = Integer.parseInt(propertiesReader.getValue("container.defaultPoolSize"));
     }
 
     @Override
