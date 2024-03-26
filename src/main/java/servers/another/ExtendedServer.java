@@ -24,16 +24,25 @@ public class ExtendedServer extends Server{
 
     private static final Logger log = LogManager.getLogger(ExtendedServer.class.getSimpleName());
 
-    public ExtendedServer(Integer port) throws IOException {
-        super(port);
+    {
         this.handlerContainer = new ByteBufferHandlerContainer<>();
         this.taskContainer = new TaskContainer();
     }
 
+    public ExtendedServer(Integer port) throws IOException {
+        super(port);
+    }
+
     public ExtendedServer(Integer port, boolean checkClients) throws IOException {
         super(port, checkClients);
-        this.handlerContainer = new ByteBufferHandlerContainer<>();
-        this.taskContainer = new TaskContainer();
+    }
+
+    public ExtendedServer(Integer port, int maxNumberClient) throws IOException {
+        super(port, maxNumberClient);
+    }
+
+    public ExtendedServer(Integer port, boolean checkClients, int maxNumberClient) throws IOException {
+        super(port, checkClients, maxNumberClient);
     }
 
     @Override
